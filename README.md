@@ -16,6 +16,6 @@ This is a modular HR system including employee management, attendance, leave tra
 ### Setup
 
 ```bash
-git clone https://github.com/your-username/hrms-system.git
+git clone https://github.com/HirziKhalis/hrms-system.git
 cd hrms-system
 docker-compose up -d
