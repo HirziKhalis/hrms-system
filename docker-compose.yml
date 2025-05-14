@@ -1,19 +1,17 @@
 version: '3.8'
 
 services:
-  postgres:
+  db:
     image: postgres:15
-    container_name: hrms_postgres
     restart: always
     environment:
-      POSTGRES_DB: hrms
       POSTGRES_USER: hr_user
       POSTGRES_PASSWORD: hr_pass
+      POSTGRES_DB: hrms
+    volumes:
+      - hrms_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-      - ./backend/database:/docker-entrypoint-initdb.d
 
 volumes:
-  pgdata:
+  hrms_data:
