@@ -1,7 +1,8 @@
 // routes/employees.js
 import express from "express";
-import { pool } from '../db.js';
-import { authorizeRoles } from "../middleware/auth.js";
+import { body, validationResult } from "express-validator";
+import { pool } from "../db.js";
+import { authenticateToken, authorizeRoles } from "../middleware/auth.js";
 
 const router = express.Router();
 
@@ -35,70 +36,148 @@ router.get("/:id", async (req, res) => {
 });
 
 // Create new employee (Admin only)
-router.post("/", authorizeRoles("admin"), async (req, res) => {
-  const {
-    first_name,
-    last_name,
-    email,
-    phone,
-    department,
-    position,
-    supervisor_id,
-  } = req.body;
+router.post(
+  "/",
+  authenticateToken,
+  authorizeRoles("admin"),
+  [
+    body("first_name").notEmpty().withMessage("First name is required"),
+    body("last_name").notEmpty().withMessage("Last name is required"),
+    body("email").isEmail().withMessage("Valid email is required"),
+    body("phone").notEmpty().withMessage("Phone number is required"),
+    body("department").notEmpty().withMessage("Department is required"),
+    body("position").notEmpty().withMessage("Position is required"),
+    body("supervisor_id")
+      .optional()
+      .isUUID()
+      .withMessage("Supervisor ID must be a valid UUID"),
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
 
-  try {
-    const result = await pool.query(
-      `INSERT INTO hr.employees (first_name, last_name, email, phone, department, position, supervisor_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-      [first_name, last_name, email, phone, department, position, supervisor_id]
-    );
-    res.status(201).json(result.rows[0]);
-  } catch (err) {
-    console.error(err);
-    res.status(500).send("Server error");
+    const {
+      first_name,
+      last_name,
+      email,
+      phone,
+      department,
+      position,
+      supervisor_id,
+    } = req.body;
+
+    try {
+      const result = await pool.query(
+        `INSERT INTO hr.employees (employee_id, first_name, last_name, email, phone, department, position, supervisor_id)
+         VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7)
+         RETURNING *`,
+        [
+          first_name,
+          last_name,
+          email,
+          phone,
+          department,
+          position,
+          supervisor_id || null,
+        ]
+      );
+
+      res.status(201).json(result.rows[0]);
+    } catch (err) {
+      console.error(err);
+      res.status(500).send("Server error");
+    }
   }
-});
+);
 
 // Update employee (Admin only for now)
-router.put("/:id", authorizeRoles("admin"), async (req, res) => {
-  const {
-    first_name,
-    last_name,
-    email,
-    phone,
-    department,
-    position,
-    supervisor_id,
-    status,
-  } = req.body;
+router.put(
+  "/:id",
+  authorizeRoles("admin"),
+  [
+    body("first_name")
+      .optional()
+      .notEmpty()
+      .withMessage("First name cannot be empty"),
+    body("last_name")
+      .optional()
+      .notEmpty()
+      .withMessage("Last name cannot be empty"),
+    body("email").optional().isEmail().withMessage("A valid email is required"),
+    body("phone")
+      .optional()
+      .notEmpty()
+      .withMessage("Phone number cannot be empty"),
+    body("department")
+      .optional()
+      .notEmpty()
+      .withMessage("Department cannot be empty"),
+    body("position")
+      .optional()
+      .notEmpty()
+      .withMessage("Position cannot be empty"),
+    body("supervisor_id")
+      .optional()
+      .isUUID()
+      .withMessage("Supervisor ID must be a valid UUID"),
+    body("status")
+      .optional()
+      .isIn(["active", "inactive", "terminated"])
+      .withMessage("Invalid status"),
+  ],
+  (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+    next();
+  },
+  async (req, res) => {
+    const { id } = req.params;
+    const {
+      first_name,
+      last_name,
+      email,
+      phone,
+      department,
+      position,
+      supervisor_id,
+      status,
+    } = req.body;
 
-  try {
-    const result = await pool.query(
-      `UPDATE hr.employees
+    // Use a fallback if status is undefined
+    const employeeStatus = status ?? "active";
+
+    try {
+      const result = await pool.query(
+        `UPDATE hr.employees
        SET first_name=$1, last_name=$2, email=$3, phone=$4, department=$5,
            position=$6, supervisor_id=$7, status=$8, updated_at=NOW()
        WHERE employee_id = $9 RETURNING *`,
-      [
-        first_name,
-        last_name,
-        email,
-        phone,
-        department,
-        position,
-        supervisor_id,
-        status,
-        req.params.id,
-      ]
-    );
+        [
+          first_name,
+          last_name,
+          email,
+          phone,
+          department,
+          position,
+          supervisor_id,
+          employeeStatus,
+          req.params.id,
+        ]
+      );
 
-    if (result.rows.length === 0)
-      return res.status(404).send("Employee not found");
-    res.json(result.rows[0]);
-  } catch (err) {
-    console.error(err);
-    res.status(500).send("Server error");
+      if (result.rows.length === 0)
+        return res.status(404).send("Employee not found");
+      res.json(result.rows[0]);
+    } catch (err) {
+      console.error(err);
+      res.status(500).send("Server error");
+    }
   }
-});
+);
 
 // Delete employee (Admin only)
 router.delete("/:id", authorizeRoles("admin"), async (req, res) => {

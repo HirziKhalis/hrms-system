@@ -5,7 +5,8 @@
   "type": "module",
   "main": "backend/index.js",
   "scripts": {
-    "start": "cd backend && node index.js"
+    "start": "cd backend && node index.js",
+    "dev": "nodemon --watch backend backend/index.js"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",
@@ -15,5 +16,8 @@
     "express-validator": "^7.2.1",
     "jsonwebtoken": "^9.0.2",
     "pg": "^8.15.6"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
   }
 }
