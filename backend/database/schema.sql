@@ -85,3 +85,17 @@ INSERT INTO hr.permissions (permission_name) VALUES
 ('delete_employee'),
 ('view_employee')
 ON CONFLICT DO NOTHING;
+
+-- Leave Requests Table
+CREATE TABLE hr.leave_requests (
+  leave_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  employee_id UUID NOT NULL REFERENCES hr.employees(employee_id) ON DELETE CASCADE,
+  start_date DATE NOT NULL,
+  end_date DATE NOT NULL,
+  leave_type VARCHAR(50) NOT NULL, -- e.g., 'Annual', 'Sick', 'Maternity'
+  reason TEXT,
+  status VARCHAR(20) NOT NULL DEFAULT 'pending', -- pending, approved, rejected
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+

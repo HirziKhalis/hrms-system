@@ -179,6 +179,78 @@ router.put(
   }
 );
 
+// PATCH employee (partial update)
+router.patch(
+  "/:id",
+  authenticateToken,
+  authorizeRoles("admin"),
+  [
+    body("email").optional().isEmail().withMessage("A valid email is required"),
+    body("phone").optional().notEmpty().withMessage("Phone cannot be empty"),
+    body("first_name")
+      .optional()
+      .notEmpty()
+      .withMessage("First name cannot be empty"),
+    body("last_name")
+      .optional()
+      .notEmpty()
+      .withMessage("Last name cannot be empty"),
+    body("department")
+      .optional()
+      .notEmpty()
+      .withMessage("Department cannot be empty"),
+    body("position")
+      .optional()
+      .notEmpty()
+      .withMessage("Position cannot be empty"),
+    body("supervisor_id")
+      .optional()
+      .isUUID()
+      .withMessage("Supervisor ID must be a valid UUID"),
+    body("status")
+      .optional()
+      .isIn(["active", "inactive", "terminated"])
+      .withMessage("Invalid status value"),
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { id } = req.params;
+    const fields = req.body;
+
+    // Dynamically build SET clause
+    const keys = Object.keys(fields);
+    if (keys.length === 0) {
+      return res.status(400).json({ message: "No fields to update" });
+    }
+
+    const setClauses = keys.map((key, index) => `${key} = $${index + 1}`);
+    const values = keys.map((key) => fields[key]);
+
+    try {
+      const result = await pool.query(
+        `UPDATE hr.employees
+         SET ${setClauses.join(", ")}, updated_at = NOW()
+         WHERE employee_id = $${keys.length + 1}
+         RETURNING *`,
+        [...values, id]
+      );
+
+      if (result.rows.length === 0) {
+        return res.status(404).json({ message: "Employee not found" });
+      }
+
+      res.json(result.rows[0]);
+    } catch (err) {
+      console.error(err);
+      res.status(500).send("Server error");
+    }
+  }
+);
+
 // Delete employee (Admin only)
 router.delete("/:id", authorizeRoles("admin"), async (req, res) => {
   try {

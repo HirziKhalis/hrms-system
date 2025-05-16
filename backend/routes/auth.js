@@ -34,9 +34,9 @@ router.post(
     try {
       const hashedPassword = await bcrypt.hash(password, 10);
       const result = await pool.query(
-        `INSERT INTO hr.users (user_id, username, password, role, employee_id)
-         VALUES (gen_random_uuid(), $1, $2, $3, $4)
-         RETURNING user_id, username, role, employee_id`,
+        `INSERT INTO hr.users (user_id, username, password_hash, role, employee_id)
+     VALUES (gen_random_uuid(), $1, $2, $3, $4)
+     RETURNING user_id, username, role, employee_id`,
         [username, hashedPassword, role, employee_id]
       );
 
