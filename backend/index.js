@@ -7,6 +7,7 @@ import authRoutes from "./routes/auth.js";
 import employeeRoutes from "./routes/employees.js";
 import leaveRequestRoutes from "./routes/leaveRequests.js";
 import userRoutes from "./routes/users.js";
+import attendanceRoutes from "./routes/attendance.js";
 
 dotenv.config();
 
@@ -16,10 +17,11 @@ const port = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-app.use("/auth", authRoutes);
-app.use("/users", userRoutes);
-app.use("/employees", authenticateToken, employeeRoutes); // All employee routes are protected
-app.use("/leave-requests", leaveRequestRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/employees", authenticateToken, employeeRoutes);
+app.use("/api/leave-requests", leaveRequestRoutes);
+app.use("/api/attendance", attendanceRoutes);
 
 app.listen(port, () => {
   console.log(`HRMS backend running on http://localhost:${port}`);

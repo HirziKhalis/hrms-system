@@ -1,6 +1,7 @@
+// routes/users.js
 import express from "express";
 import { pool } from "../db.js";
-import { authenticateToken, authorizeRoles } from "../middleware/auth.js";
+import { authenticateToken, authorizePermissions } from "../middleware/auth.js";
 import { body, validationResult } from "express-validator";
 
 const router = express.Router();
@@ -17,14 +18,15 @@ const validate = (req, res, next) => {
 router.get(
   "/",
   authenticateToken,
-  authorizeRoles("admin"),
+  authorizePermissions("read_users"), // ✅
   async (req, res) => {
     try {
       const result = await pool.query(`
-      SELECT user_id, username, role, employee_id
-      FROM hr.users
-      ORDER BY username ASC
-    `);
+  SELECT u.user_id, u.username, r.role_name AS role, u.employee_id
+  FROM hr.users u
+  LEFT JOIN hr.roles r ON u.role_id = r.role_id
+  ORDER BY u.username ASC
+`);
       res.json(result.rows);
     } catch (err) {
       console.error(err);
@@ -37,24 +39,24 @@ router.get(
 router.get(
   "/:id",
   authenticateToken,
-  authorizeRoles("admin"),
+  authorizePermissions("read_users"),
   async (req, res) => {
     try {
       const result = await pool.query(
-        `
-      SELECT user_id, username, role, employee_id
-      FROM hr.users
-      WHERE user_id = $1
-    `,
+        `SELECT u.user_id, u.username, r.role_name AS role, u.employee_id
+         FROM hr.users u
+         LEFT JOIN hr.roles r ON u.role_id = r.role_id
+         WHERE u.user_id = $1`,
         [req.params.id]
       );
 
       if (result.rows.length === 0)
-        return res.status(404).send("User not found");
+        return res.status(404).json({ message: "User not found" });
+
       res.json(result.rows[0]);
     } catch (err) {
       console.error(err);
-      res.status(500).send("Server error");
+      res.status(500).json({ message: "Server error" });
     }
   }
 );
@@ -63,7 +65,7 @@ router.get(
 router.patch(
   "/:id",
   authenticateToken,
-  authorizeRoles("admin"),
+  authorizePermissions("update_users"),
   [
     body("role")
       .optional()
@@ -76,19 +78,36 @@ router.patch(
     if (!role) return res.status(400).json({ message: "Nothing to update" });
 
     try {
-      const result = await pool.query(
-        `
-        UPDATE hr.users
-        SET role = $1
-        WHERE user_id = $2
-        RETURNING user_id, username, role, employee_id
-      `,
+      // Update the user's role_id using the role_name
+      const updateResult = await pool.query(
+        `UPDATE hr.users
+         SET role_id = (
+           SELECT role_id FROM hr.roles WHERE role_name = $1
+         )
+         WHERE user_id = $2
+         RETURNING user_id, username, employee_id, role_id`,
         [role, req.params.id]
       );
 
-      if (result.rows.length === 0)
+      if (updateResult.rows.length === 0)
         return res.status(404).send("User not found");
-      res.json(result.rows[0]);
+
+      const updatedUser = updateResult.rows[0];
+
+      // Fetch the full role details
+      const roleResult = await pool.query(
+        `SELECT role_name FROM hr.roles WHERE role_id = $1`,
+        [updatedUser.role_id]
+      );
+
+      const roleName = roleResult.rows[0]?.role_name || null;
+
+      res.json({
+        user_id: updatedUser.user_id,
+        username: updatedUser.username,
+        employee_id: updatedUser.employee_id,
+        role: roleName,
+      });
     } catch (err) {
       console.error(err);
       res.status(500).send("Server error");
@@ -96,28 +115,27 @@ router.patch(
   }
 );
 
-// Delete user (optional: could be a soft delete)
+// Delete user
 router.delete(
   "/:id",
   authenticateToken,
-  authorizeRoles("admin"),
+  authorizePermissions("delete_users"),
   async (req, res) => {
     try {
       const result = await pool.query(
-        `
-      DELETE FROM hr.users
-      WHERE user_id = $1
-      RETURNING *
-    `,
+        `DELETE FROM hr.users
+         WHERE user_id = $1
+         RETURNING user_id, username, employee_id`,
         [req.params.id]
       );
 
       if (result.rows.length === 0)
-        return res.status(404).send("User not found");
+        return res.status(404).json({ message: "User not found" });
+
       res.sendStatus(204);
     } catch (err) {
       console.error(err);
-      res.status(500).send("Server error");
+      res.status(500).json({ message: "Server error" });
     }
   }
 );
