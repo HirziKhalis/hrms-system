@@ -1,0 +1,28 @@
+.dashboard-container {
+  display: flex;
+  height: 100vh;
+}
+
+.sidebar {
+  width: 200px;
+  background: #222;
+  color: white;
+  padding: 1rem;
+}
+
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.navbar {
+  background: #f4f4f4;
+  padding: 1rem;
+  display: flex;
+  justify-content: space-between;
+}
+
+.content {
+  padding: 1rem;
+}
