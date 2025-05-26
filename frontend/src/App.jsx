@@ -4,6 +4,7 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Attendance from "./pages/Attendance";
 import PrivateRoute from "./components/PrivateRoute";
+import LeaveRequest from "./pages/LeaveRequest";
 
 const App = () => {
   return (
@@ -26,6 +27,7 @@ const App = () => {
           </PrivateRoute>
         }
       />
+      <Route path="/leave-request" element={<LeaveRequest />} />
     </Routes>
   );
 };

@@ -76,9 +76,11 @@ router.patch("/check-out", authenticateToken, async (req, res) => {
 router.get("/my", authenticateToken, async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT * FROM hr.attendance
-       WHERE employee_id = $1
-       ORDER BY created_at DESC`,
+      `SELECT a.*, e.first_name || ' ' || e.last_name AS employee_name
+   FROM hr.attendance a
+   JOIN hr.employees e ON a.employee_id = e.employee_id
+   WHERE a.employee_id = $1
+   ORDER BY a.created_at DESC`,
       [req.user.employee_id]
     );
     res.json(result.rows);
@@ -96,7 +98,7 @@ router.get(
   async (req, res) => {
     try {
       const result = await pool.query(
-        `SELECT a.*, e.first_name, e.last_name
+        `SELECT a.*, e.first_name || ' ' || e.last_name AS employee_name
        FROM hr.attendance a
        JOIN hr.employees e ON a.employee_id = e.employee_id
        ORDER BY a.created_at DESC`

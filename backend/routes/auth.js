@@ -108,7 +108,9 @@ router.post(
       const token = jwt.sign(
         {
           user_id: user.user_id,
+          username: user.username,
           role_id: user.role_id,
+          role_name: user.role_name, // ✅ include this!
           employee_id: user.employee_id,
         },
         process.env.JWT_SECRET,

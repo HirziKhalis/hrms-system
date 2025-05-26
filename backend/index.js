@@ -3,6 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import { pool } from "./db.js";
 import { authenticateToken } from "./middleware/auth.js";
+import markAbsentees from "./cron/markAbsentees.js";
 import authRoutes from "./routes/auth.js";
 import employeeRoutes from "./routes/employees.js";
 import leaveRequestRoutes from "./routes/leaveRequests.js";
@@ -22,6 +23,8 @@ app.use("/api/users", userRoutes);
 app.use("/api/employees", authenticateToken, employeeRoutes);
 app.use("/api/leave-requests", leaveRequestRoutes);
 app.use("/api/attendance", attendanceRoutes);
+
+markAbsentees();
 
 app.listen(port, () => {
   console.log(`HRMS backend running on http://localhost:${port}`);

@@ -72,7 +72,12 @@ router.get(
 router.get("/my", authenticateToken, async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT * FROM hr.leave_requests WHERE employee_id = $1 ORDER BY request_date DESC`,
+      `SELECT lr.request_id, lr.start_date, lr.end_date, lr.status, lr.notes, lr.request_date,
+              lt.type_name AS leave_type
+       FROM hr.leave_requests lr
+       JOIN hr.leave_types lt ON lr.leave_type_id = lt.leave_type_id
+       WHERE lr.employee_id = $1
+       ORDER BY lr.request_date DESC`,
       [req.user.employee_id]
     );
 
@@ -115,5 +120,20 @@ router.patch(
     }
   }
 );
+
+// Get all leave types (for dropdowns etc.)
+router.get("/types", authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT leave_type_id, type_name
+      FROM hr.leave_types
+      ORDER BY type_name
+    `);
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Error fetching leave types:", err);
+    res.status(500).send("Server error");
+  }
+});
 
 export default router;

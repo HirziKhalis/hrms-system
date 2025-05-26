@@ -59,15 +59,18 @@ export const authenticateToken = (req, res, next) => {
 // Middleware to authorize based on roles
 export const authorizeRoles = (...allowedRoles) => {
   return (req, res, next) => {
-    if (!req.user?.role) {
+    const role = req.user?.role || req.user?.role_name;
+
+    if (!role) {
       return res.status(400).json({ message: "Role information missing" });
     }
 
-    if (!allowedRoles.includes(req.user.role)) {
+    if (!allowedRoles.includes(role)) {
       return res
         .status(403)
         .json({ message: "Access denied: insufficient role" });
     }
+
     next();
   };
 };
