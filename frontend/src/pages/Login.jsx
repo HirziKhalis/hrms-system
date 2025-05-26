@@ -29,8 +29,11 @@ const Login = () => {
         return;
       }
 
+      // ✅ Store both token and user in localStorage
       localStorage.setItem("token", data.token);
-      navigate("/dashboard"); // redirect on success
+      localStorage.setItem("user", JSON.stringify(data.user));
+
+      navigate("/dashboard");
     } catch (err) {
       console.error(err);
       setError("Something went wrong. Try again.");

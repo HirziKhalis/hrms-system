@@ -80,13 +80,18 @@ router.post(
 
     try {
       const userResult = await pool.query(
-        `SELECT u.user_id, u.username, u.password_hash, u.role_id, u.employee_id,
-          e.first_name, e.last_name, e.email, e.department_id,
-          r.role_name
-   FROM hr.users u
-   LEFT JOIN hr.employees e ON u.employee_id = e.employee_id
-   LEFT JOIN hr.roles r ON u.role_id = r.role_id
-   WHERE u.username = $1`,
+        `SELECT
+  u.user_id, u.username, u.password_hash,
+  u.role_id AS user_role_id,
+  r.role_id AS role_table_id,
+  r.role_name,
+  u.employee_id,
+  e.first_name, e.last_name, e.email, e.department_id
+FROM hr.users u
+LEFT JOIN hr.employees e ON u.employee_id = e.employee_id
+LEFT JOIN hr.roles r ON u.role_id = r.role_id
+WHERE u.username = $1
+`,
         [username]
       );
 
@@ -110,7 +115,7 @@ router.post(
           user_id: user.user_id,
           username: user.username,
           role_id: user.role_id,
-          role_name: user.role_name, // ✅ include this!
+          role_name: user.role_name,
           employee_id: user.employee_id,
         },
         process.env.JWT_SECRET,
@@ -123,7 +128,7 @@ router.post(
           user_id: user.user_id,
           username: user.username,
           role_id: user.role_id,
-          role_name: user.role_name, // ← this is now available
+          role_name: user.role_name,
           employee_id: user.employee_id,
           first_name: user.first_name,
           last_name: user.last_name,
