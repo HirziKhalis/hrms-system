@@ -1,4 +1,3 @@
-// src/pages/LeaveRequestsAdmin.jsx
 import React, { useEffect, useState } from "react";
 
 const LeaveRequestsAdmin = () => {
@@ -11,11 +10,27 @@ const LeaveRequestsAdmin = () => {
       const res = await fetch("/api/leave-requests", {
         headers: { Authorization: `Bearer ${token}` },
       });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        setMessage(errorData.message || "Unauthorized or failed to fetch data");
+        setRequests([]);
+        return;
+      }
+
       const data = await res.json();
+
+      if (!Array.isArray(data)) {
+        setMessage("Unexpected data format from server.");
+        setRequests([]);
+        return;
+      }
+
       setRequests(data);
     } catch (err) {
       console.error(err);
       setMessage("Failed to fetch leave requests");
+      setRequests([]);
     }
   };
 
@@ -34,11 +49,12 @@ const LeaveRequestsAdmin = () => {
 
       const data = await res.json();
       if (!res.ok) {
-        return setMessage(data.message || "Error updating status");
+        setMessage(data.message || "Failed to update status");
+        return;
       }
 
       setMessage(`Request ${status} successfully`);
-      fetchRequests();
+      fetchRequests(); // Refresh
     } catch (err) {
       console.error(err);
       setMessage("Error processing request");
@@ -50,51 +66,63 @@ const LeaveRequestsAdmin = () => {
   }, []);
 
   return (
-    <div style={{ maxWidth: "900px", margin: "2rem auto" }}>
-      <h2>Leave Requests (Admin)</h2>
-      {message && <p style={{ color: "green" }}>{message}</p>}
+    <div className="max-w-6xl mx-auto mt-10 p-6 bg-white text-gray-800 rounded shadow">
+      <h2 className="text-2xl font-bold mb-4 text-gray-900">Leave Requests (Admin)</h2>
+      {message && <p className="mb-4 text-green-600">{message}</p>}
 
-      <table border="1" cellPadding="8" cellSpacing="0" width="100%">
-        <thead>
-          <tr>
-            <th>Request ID</th>
-            <th>Employee ID</th>
-            <th>Leave Type</th>
-            <th>Start</th>
-            <th>End</th>
-            <th>Status</th>
-            <th>Notes</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {requests.map((req) => (
-            <tr key={req.request_id}>
-              <td>{req.request_id}</td>
-              <td>{req.employee_id}</td>
-              <td>{req.leave_type}</td>
-              <td>{new Date(req.start_date).toLocaleDateString()}</td>
-              <td>{new Date(req.end_date).toLocaleDateString()}</td>
-              <td>{req.status}</td>
-              <td>{req.notes || "-"}</td>
-              <td>
-                {req.status === "pending" ? (
-                  <>
-                    <button onClick={() => handleAction(req.request_id, "approved")}>
-                      Approve
-                    </button>{" "}
-                    <button onClick={() => handleAction(req.request_id, "rejected")}>
-                      Reject
-                    </button>
-                  </>
-                ) : (
-                  <em>{req.status}</em>
-                )}
-              </td>
+      <div className="overflow-x-auto">
+        <table className="min-w-full border border-gray-300 text-sm text-left">
+          <thead className="bg-gray-100 text-gray-700 uppercase">
+            <tr>
+              <th className="px-4 py-2 border">Request ID</th>
+              <th className="px-4 py-2 border">Employee ID</th>
+              <th className="px-4 py-2 border">Leave Type</th>
+              <th className="px-4 py-2 border">Start</th>
+              <th className="px-4 py-2 border">End</th>
+              <th className="px-4 py-2 border">Status</th>
+              <th className="px-4 py-2 border">Notes</th>
+              <th className="px-4 py-2 border">Actions</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {requests.map((req) => (
+              <tr key={req.request_id} className="hover:bg-gray-50">
+                <td className="px-4 py-2 border">{req.request_id}</td>
+                <td className="px-4 py-2 border">{req.employee_id}</td>
+                <td className="px-4 py-2 border">{req.leave_type}</td>
+                <td className="px-4 py-2 border">
+                  {new Date(req.start_date).toLocaleDateString()}
+                </td>
+                <td className="px-4 py-2 border">
+                  {new Date(req.end_date).toLocaleDateString()}
+                </td>
+                <td className="px-4 py-2 border">{req.status}</td>
+                <td className="px-4 py-2 border">{req.notes || "-"}</td>
+                <td className="px-4 py-2 border">
+                  {req.status === "pending" ? (
+                    <div className="flex gap-2">
+                      <button
+                        className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700"
+                        onClick={() => handleAction(req.request_id, "approved")}
+                      >
+                        Approve
+                      </button>
+                      <button
+                        className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
+                        onClick={() => handleAction(req.request_id, "rejected")}
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  ) : (
+                    <em className="text-gray-600">{req.status}</em>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 };
