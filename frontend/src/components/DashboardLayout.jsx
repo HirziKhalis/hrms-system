@@ -1,14 +1,23 @@
+import React from "react";
 import Sidebar from "./Sidebar";
-import Navbar from "./Navbar";
+import Navbar from "./Navbar"; // Optional top nav (if needed)
 import "../styles/DashboardLayout.css"; // Optional styling
 
 const DashboardLayout = ({ children }) => {
   return (
-    <div className="dashboard-container">
+    <div className="flex h-screen bg-gray-100">
+      {/* Sidebar */}
       <Sidebar />
-      <div className="main-content">
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Optional Navbar */}
         <Navbar />
-        <div className="content">{children}</div>
+
+        {/* Page Content */}
+        <main className="flex-1 overflow-auto p-6">
+          {children}
+        </main>
       </div>
     </div>
   );

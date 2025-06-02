@@ -52,13 +52,22 @@ router.get(
   async (req, res) => {
     try {
       const result = await pool.query(`
-        SELECT lr.request_id, lr.employee_id, lr.start_date, lr.end_date,
-             lr.status, lr.notes, lr.request_date, lr.approved_by,
-             lt.type_name AS leave_type
-      FROM hr.leave_requests lr
-      JOIN hr.leave_types lt ON lr.leave_type_id = lt.leave_type_id
-      ORDER BY lr.request_date DESC
-    `);
+  SELECT
+    lr.request_id,
+    lr.employee_id,
+    e.first_name || ' ' || e.last_name AS employee_name,  -- 👈 Added line
+    lr.start_date,
+    lr.end_date,
+    lr.status,
+    lr.notes,
+    lr.request_date,
+    lr.approved_by,
+    lt.type_name AS leave_type
+  FROM hr.leave_requests lr
+  JOIN hr.leave_types lt ON lr.leave_type_id = lt.leave_type_id
+  JOIN hr.employees e ON lr.employee_id = e.employee_id  -- 👈 Added join
+  ORDER BY lr.request_date DESC
+`);
 
       res.json(result.rows);
     } catch (err) {

@@ -2,23 +2,31 @@ import React from "react";
 import { Navigate, Routes, Route } from "react-router-dom";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
-import RequireAdmin from "./components/RequireAdmin";
-import Unauthorized from "./pages/Unauthorized";
 import Attendance from "./pages/Attendance";
-import PrivateRoute from "./components/PrivateRoute";
 import LeaveRequest from "./pages/LeaveRequest";
 import LeaveRequestsAdmin from "./pages/LeaveRequestAdmin";
+import Unauthorized from "./pages/Unauthorized";
+
+import PrivateRoute from "./components/PrivateRoute";
+import RequireAdmin from "./components/RequireAdmin";
+import DashboardLayout from "./components/DashboardLayout";
 
 const App = () => {
   return (
     <Routes>
+      {/* Public routes */}
       <Route path="/" element={<Navigate to="/login" />} />
       <Route path="/login" element={<Login />} />
+      <Route path="/unauthorized" element={<Unauthorized />} />
+
+      {/* Private routes with sidebar */}
       <Route
         path="/dashboard"
         element={
           <PrivateRoute>
-            <Dashboard />
+            <DashboardLayout>
+              <Dashboard />
+            </DashboardLayout>
           </PrivateRoute>
         }
       />
@@ -26,7 +34,9 @@ const App = () => {
         path="/attendance"
         element={
           <PrivateRoute>
-            <Attendance />
+            <DashboardLayout>
+              <Attendance />
+            </DashboardLayout>
           </PrivateRoute>
         }
       />
@@ -34,19 +44,25 @@ const App = () => {
         path="/leave-request"
         element={
           <PrivateRoute>
-            <LeaveRequest />
+            <DashboardLayout>
+              <LeaveRequest />
+            </DashboardLayout>
           </PrivateRoute>
         }
       />
-      <Route path="/admin/leave-requests" element={
-        <RequireAdmin>
-          <LeaveRequestsAdmin />
-        </RequireAdmin>
-      } />
 
-      <Route path="/unauthorized" element={<Unauthorized />} />
+      {/* Admin route with sidebar */}
+      <Route
+        path="/admin/leave-requests"
+        element={
+          <RequireAdmin>
+            <DashboardLayout>
+              <LeaveRequestsAdmin />
+            </DashboardLayout>
+          </RequireAdmin>
+        }
+      />
     </Routes>
-
   );
 };
 
