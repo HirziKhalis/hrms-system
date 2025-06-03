@@ -6,9 +6,9 @@ import Attendance from "./pages/Attendance";
 import LeaveRequest from "./pages/LeaveRequest";
 import LeaveRequestsAdmin from "./pages/LeaveRequestAdmin";
 import Unauthorized from "./pages/Unauthorized";
-
+import PayrollAdmin from "./pages/PayrollAdmin";
 import PrivateRoute from "./components/PrivateRoute";
-import RequireAdmin from "./components/RequireAdmin";
+import RequireRole from "./components/RequireRole";
 import DashboardLayout from "./components/DashboardLayout";
 
 const App = () => {
@@ -55,11 +55,22 @@ const App = () => {
       <Route
         path="/admin/leave-requests"
         element={
-          <RequireAdmin>
+          <RequireRole roles={["admin", "manager"]}>
             <DashboardLayout>
               <LeaveRequestsAdmin />
             </DashboardLayout>
-          </RequireAdmin>
+          </RequireRole>
+        }
+      />
+
+      <Route
+        path="/admin/payroll"
+        element={
+          <RequireRole roles={["admin", "manager"]}>
+            <DashboardLayout>
+              <PayrollAdmin />
+            </DashboardLayout>
+          </RequireRole>
         }
       />
     </Routes>

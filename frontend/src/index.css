@@ -69,4 +69,10 @@ button:focus-visible {
   button {
     background-color: #f9f9f9;
   }
+
+  .fade-out {
+    opacity: 0;
+    transition: opacity 300ms ease-in-out;
+  }
+
 }

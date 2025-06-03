@@ -48,7 +48,7 @@ router.post(
 router.get(
   "/",
   authenticateToken,
-  authorizeRoles("admin"),
+  authorizeRoles("admin", "manager"),
   async (req, res) => {
     try {
       const result = await pool.query(`
@@ -101,7 +101,7 @@ router.get("/my", authenticateToken, async (req, res) => {
 router.patch(
   "/:id/status",
   authenticateToken,
-  authorizeRoles("admin"),
+  authorizeRoles("admin", "manager"),
   [
     body("status")
       .isIn(["approved", "rejected"])

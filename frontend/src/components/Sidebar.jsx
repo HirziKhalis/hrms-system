@@ -1,20 +1,9 @@
 import { Link } from "react-router-dom";
-import { FaHome, FaCalendarCheck, FaPlaneDeparture, FaUserShield } from "react-icons/fa";
+import { FaHome, FaCalendarCheck, FaPlaneDeparture, FaUserShield, FaMoneyBill } from "react-icons/fa";
 import { jwtDecode } from "jwt-decode";
+import { hasRole } from "../utils/auth";
 
 const Sidebar = () => {
-  let isAdmin = false;
-
-  try {
-    const token = localStorage.getItem("token");
-    if (token) {
-      const decoded = jwtDecode(token);
-      isAdmin = decoded?.role_name === "admin";
-    }
-  } catch (err) {
-    console.error("Invalid token", err);
-  }
-
   return (
     <aside className="group h-screen bg-gray-900 text-white flex flex-col transition-all duration-300 w-20 hover:w-64 overflow-hidden">
       <div className="p-4">
@@ -28,11 +17,18 @@ const Sidebar = () => {
         <SidebarLink to="/attendance" icon={<FaCalendarCheck />} text="Attendance" />
         <SidebarLink to="/leave-request" icon={<FaPlaneDeparture />} text="Leave Requests" />
 
-        {isAdmin && (
+        {hasRole(["admin", "manager"]) && (
           <SidebarLink
             to="/admin/leave-requests"
             icon={<FaUserShield />}
-            text="Admin Leave Requests"
+            text="Leave Request (Admin)"
+          />
+        )}
+
+        {hasRole(['admin']) && (
+          <SidebarLink to="/admin/payroll"
+            icon={<FaMoneyBill />}
+            text="Payroll"
           />
         )}
       </nav>

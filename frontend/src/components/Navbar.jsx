@@ -1,13 +1,22 @@
 // src/components/Navbar.js or Header.js
 import { useNavigate } from "react-router-dom";
+import { useContext } from "react";
+import { AuthContext } from "../context/AuthContext";
 
 const Navbar = () => {
   const navigate = useNavigate();
 
+  const { logout } = useContext(AuthContext);
+
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    navigate("/login");
+    document.body.classList.add("fade-out");
+
+    setTimeout(() => {
+      localStorage.removeItem("token");
+      navigate("/login");
+    }, 300); // matches transition duration
   };
+
 
   return (
     <nav className="flex items-center justify-between bg-gray-100 px-6 py-3 shadow">

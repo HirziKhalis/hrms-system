@@ -26,6 +26,24 @@ export const getUserFromToken = () => {
   }
 };
 
+// Checking role for Authentication
+export const hasRole = (requiredRoles) => {
+  const token = localStorage.getItem("token");
+  if (!token) return false;
+
+  try {
+    const decoded = jwtDecode(token);
+    const userRole = decoded.role_name;
+
+    // Check if user's role matches any of the required roles
+    return requiredRoles.includes(userRole);
+  } catch (err) {
+    console.error("JWT decoding failed:", err);
+    return false;
+  }
+};
+
+
 // Check if user is authenticated
 export const isAuthenticated = () => !!getUserFromToken();
 
