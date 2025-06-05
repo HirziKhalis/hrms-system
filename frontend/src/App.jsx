@@ -7,9 +7,13 @@ import LeaveRequest from "./pages/LeaveRequest";
 import LeaveRequestsAdmin from "./pages/LeaveRequestAdmin";
 import Unauthorized from "./pages/Unauthorized";
 import PayrollAdmin from "./pages/PayrollAdmin";
+import IncentiveAdmin from "./pages/IncentiveAdmin";
+import ReferralForm from "./pages/ReferralForm";
 import PrivateRoute from "./components/PrivateRoute";
 import RequireRole from "./components/RequireRole";
 import DashboardLayout from "./components/DashboardLayout";
+import ReferralsAdmin from "./pages/ReferralsAdmin";
+import IncentiveFormAdmin from "./pages/IncentiveFormAdmin";
 
 const App = () => {
   return (
@@ -69,6 +73,44 @@ const App = () => {
           <RequireRole roles={["admin", "manager"]}>
             <DashboardLayout>
               <PayrollAdmin />
+            </DashboardLayout>
+          </RequireRole>
+        }
+      />
+
+      <Route path="/referrals" element={
+        <RequireRole roles={["employee", "admin", "manager"]}>
+          <DashboardLayout>
+            <ReferralForm />
+          </DashboardLayout>
+        </RequireRole>
+      } />
+
+      <Route path="/incentives" element={
+        <RequireRole roles={["admin"]}>
+          <DashboardLayout>
+            <IncentiveAdmin />
+          </DashboardLayout>
+        </RequireRole>
+      } />
+
+      <Route
+        path="/admin/referrals"
+        element={
+          <RequireRole roles={["admin"]}>
+            <DashboardLayout>
+              <ReferralsAdmin />
+            </DashboardLayout>
+          </RequireRole>
+        }
+      />
+
+      <Route
+        path="/admin/incentives/create"
+        element={
+          <RequireRole roles={["admin"]}>
+            <DashboardLayout>
+              <IncentiveFormAdmin />
             </DashboardLayout>
           </RequireRole>
         }

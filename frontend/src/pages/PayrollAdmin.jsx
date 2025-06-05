@@ -63,12 +63,30 @@ const PayrollAdmin = () => {
               {payrolls.map((p) => (
                 <tr key={p.payroll_id} className="hover:bg-gray-50">
                   <td className="px-4 py-2 border">{p.full_name}</td>
-                  <td className="px-4 py-2 border">{p.month}</td>
-                  <td className="px-4 py-2 border">Rp {p.base_salary}</td>
-                  <td className="px-4 py-2 border">Rp {p.bonus}</td>
-                  <td className="px-4 py-2 border">Rp {p.deductions}</td>
+                  <td className="px-4 py-2 border">{new Date(p.month + "-01").toLocaleString("default", { month: "long", year: "numeric" })}</td>
+                  <td className="px-4 py-2 border">
+                    {new Intl.NumberFormat('id-ID', {
+                      style: 'currency',
+                      currency: 'IDR',
+                      minimumFractionDigits: 0
+                    }).format(p.base_salary)}</td>
+                  <td className="px-4 py-2 border">
+                    {new Intl.NumberFormat('id-ID', {
+                      style: 'currency',
+                      currency: 'IDR',
+                      minimumFractionDigits: 0
+                    }).format(p.bonus)}</td>
+                  <td className="px-4 py-2 border">  {new Intl.NumberFormat('id-ID', {
+                    style: 'currency',
+                    currency: 'IDR',
+                    minimumFractionDigits: 0
+                  }).format(p.deductions)}</td>
                   <td className="px-4 py-2 border font-semibold text-green-600">
-                    Rp {p.net_salary}
+                    {new Intl.NumberFormat('id-ID', {
+                      style: 'currency',
+                      currency: 'IDR',
+                      minimumFractionDigits: 0
+                    }).format(p.net_salary)}
                   </td>
                 </tr>
               ))}

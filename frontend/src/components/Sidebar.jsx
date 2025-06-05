@@ -1,6 +1,13 @@
 import { Link } from "react-router-dom";
-import { FaHome, FaCalendarCheck, FaPlaneDeparture, FaUserShield, FaMoneyBill } from "react-icons/fa";
-import { jwtDecode } from "jwt-decode";
+import {
+  FaHome,
+  FaCalendarCheck,
+  FaPlaneDeparture,
+  FaUserShield,
+  FaMoneyBill,
+  FaGift,
+  FaUsers
+} from "react-icons/fa";
 import { hasRole } from "../utils/auth";
 
 const Sidebar = () => {
@@ -13,23 +20,37 @@ const Sidebar = () => {
       </div>
 
       <nav className="flex flex-col space-y-2">
+
+        {/* Public for logged-in users */}
         <SidebarLink to="/dashboard" icon={<FaHome />} text="Dashboard" />
         <SidebarLink to="/attendance" icon={<FaCalendarCheck />} text="Attendance" />
         <SidebarLink to="/leave-request" icon={<FaPlaneDeparture />} text="Leave Requests" />
 
+        {/* Admin / Manager */}
         {hasRole(["admin", "manager"]) && (
           <SidebarLink
             to="/admin/leave-requests"
             icon={<FaUserShield />}
-            text="Leave Request (Admin)"
+            text="Leave Requests (Admin)"
           />
         )}
 
-        {hasRole(['admin']) && (
-          <SidebarLink to="/admin/payroll"
-            icon={<FaMoneyBill />}
-            text="Payroll"
-          />
+        {/* Admin only */}
+        {hasRole(["admin"]) && (
+          <>
+            <SidebarLink to="/admin/payroll" icon={<FaMoneyBill />} text="Payroll" />
+
+            {/* Group incentives under one icon */}
+            <SidebarLink to="/incentives" icon={<FaGift />} text="Incentives Overview" />
+            <SidebarLink to="/admin/incentives/create" icon={<FaGift />} text="Create Incentive" />
+
+            <SidebarLink to="/admin/referrals" icon={<FaUsers />} text="Referral Admin" />
+          </>
+        )}
+
+        {/* Available to all employees */}
+        {hasRole(["employee", "manager", "admin"]) && (
+          <SidebarLink to="/referrals" icon={<FaUsers />} text="Referral Form" />
         )}
       </nav>
     </aside>

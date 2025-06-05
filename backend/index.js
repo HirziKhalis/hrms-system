@@ -10,6 +10,8 @@ import leaveRequestRoutes from "./routes/leaveRequests.js";
 import userRoutes from "./routes/users.js";
 import attendanceRoutes from "./routes/attendance.js";
 import payrollRoutes from "./routes/payroll.js";
+import incentivesRouter from "./routes/incentives.js";
+import referralsRouter from "./routes/referrals.js";
 
 dotenv.config();
 
@@ -25,6 +27,8 @@ app.use("/api/employees", authenticateToken, employeeRoutes);
 app.use("/api/leave-requests", leaveRequestRoutes);
 app.use("/api/attendance", attendanceRoutes);
 app.use("/api/payroll", payrollRoutes);
+app.use("/api/incentives", incentivesRouter);
+app.use("/api/referrals", referralsRouter);
 
 markAbsentees();
 
