@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
 import FadeTransition from "../components/FadeTransition";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 
 const LeaveRequest = () => {
   const [form, setForm] = useState({
@@ -101,23 +103,29 @@ const LeaveRequest = () => {
 
           <div>
             <label className="block mb-1 font-medium">Start Date:</label>
-            <input
-              type="date"
-              value={form.start_date}
-              onChange={(e) => setForm({ ...form, start_date: e.target.value })}
-              required
+            <DatePicker
+              selected={form.start_date ? new Date(form.start_date) : null}
+              onChange={(date) =>
+                setForm({ ...form, start_date: date.toISOString().split("T")[0] })
+              }
+              dateFormat="yyyy-MM-dd"
               className="w-full border border-gray-300 rounded px-3 py-2"
+              placeholderText="Select start date"
+              required
             />
           </div>
 
           <div>
             <label className="block mb-1 font-medium">End Date:</label>
-            <input
-              type="date"
-              value={form.end_date}
-              onChange={(e) => setForm({ ...form, end_date: e.target.value })}
-              required
+            <DatePicker
+              selected={form.end_date ? new Date(form.end_date) : null}
+              onChange={(date) =>
+                setForm({ ...form, end_date: date.toISOString().split("T")[0] })
+              }
+              dateFormat="yyyy-MM-dd"
               className="w-full border border-gray-300 rounded px-3 py-2"
+              placeholderText="Select end date"
+              required
             />
           </div>
 

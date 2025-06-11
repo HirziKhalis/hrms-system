@@ -14,6 +14,7 @@ import RequireRole from "./components/RequireRole";
 import DashboardLayout from "./components/DashboardLayout";
 import ReferralsAdmin from "./pages/ReferralsAdmin";
 import IncentiveFormAdmin from "./pages/IncentiveFormAdmin";
+import OvertimePage from "./pages/OvertimePage";
 
 const App = () => {
   return (
@@ -113,6 +114,17 @@ const App = () => {
               <IncentiveFormAdmin />
             </DashboardLayout>
           </RequireRole>
+        }
+      />
+
+      <Route
+        path="/overtime"
+        element={
+          <PrivateRoute>
+            <DashboardLayout>
+              <OvertimePage />
+            </DashboardLayout>
+          </PrivateRoute>
         }
       />
     </Routes>

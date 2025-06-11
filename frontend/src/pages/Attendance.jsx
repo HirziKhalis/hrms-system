@@ -94,7 +94,6 @@ const Attendance = () => {
           <table className="min-w-full text-sm text-left text-gray-700 border border-gray-200">
             <thead className="bg-gray-100 text-gray-900">
               <tr>
-                <th className="px-4 py-2 border">Attendance ID</th>
                 <th className="px-4 py-2 border">Employee Name</th>
                 <th className="px-4 py-2 border">Check In</th>
                 <th className="px-4 py-2 border">Check Out</th>
@@ -104,7 +103,6 @@ const Attendance = () => {
             <tbody>
               {records.map((record) => (
                 <tr key={record.attendance_id} className="bg-white even:bg-gray-50">
-                  <td className="px-4 py-2 border">{record.attendance_id}</td>
                   <td className="px-4 py-2 border">{record.employee_name}</td>
                   <td className="px-4 py-2 border">
                     {record.check_in ? format(new Date(record.check_in), "eee, MMM d, yyyy - hh:mm a") : "-"}

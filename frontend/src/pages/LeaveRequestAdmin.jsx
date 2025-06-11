@@ -76,7 +76,6 @@ const LeaveRequestsAdmin = () => {
           <table className="min-w-full border border-gray-300 text-sm text-left">
             <thead className="bg-gray-100 text-gray-700 uppercase">
               <tr>
-                <th className="px-4 py-2 border">Request ID</th>
                 <th className="px-4 py-2 border">Employee Name</th>
                 <th className="px-4 py-2 border">Leave Type</th>
                 <th className="px-4 py-2 border">Start</th>
@@ -89,7 +88,6 @@ const LeaveRequestsAdmin = () => {
             <tbody>
               {requests.map((req) => (
                 <tr key={req.request_id} className="hover:bg-gray-50">
-                  <td className="px-4 py-2 border">{req.request_id}</td>
                   <td className="px-4 py-2 border">{req.employee_name}</td>
                   <td className="px-4 py-2 border">{req.leave_type}</td>
                   <td className="px-4 py-2 border">
