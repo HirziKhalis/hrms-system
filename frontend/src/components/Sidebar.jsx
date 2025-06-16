@@ -25,12 +25,21 @@ const Sidebar = ({ closeSidebar }) => {
         <SidebarLink to="/leave-request" icon={<FaPlaneDeparture />} text="Leave Requests" closeSidebar={closeSidebar} />
 
         {hasRole(["admin", "manager"]) && (
-          <SidebarLink
-            to="/admin/leave-requests"
-            icon={<FaUserShield />}
-            text="Leave Requests (Admin)"
-            closeSidebar={closeSidebar}
-          />
+          <>
+            <SidebarLink
+              to="/admin/leave-requests"
+              icon={<FaUserShield />}
+              text="Leave Requests (Admin)"
+              closeSidebar={closeSidebar}
+            />
+
+            <SidebarLink
+              to="/admin/overtime-requests"
+              icon={<FaClock />}
+              text="Overtime (Admin)"
+              closeSidebar={closeSidebar}
+            />
+          </>
         )}
 
         {hasRole(["admin"]) && (

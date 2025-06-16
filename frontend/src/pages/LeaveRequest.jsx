@@ -10,21 +10,22 @@ const LeaveRequest = () => {
     end_date: "",
     notes: "",
   });
+
   const [requests, setRequests] = useState([]);
-  const [message, setMessage] = useState("");
   const [leaveTypes, setLeaveTypes] = useState([]);
+  const [message, setMessage] = useState("");
+  const [quota, setQuota] = useState({ total_days: 0, used_days: 0 });
 
   useEffect(() => {
-    fetchRequests();
     fetchLeaveTypes();
+    fetchRequests();
+    fetchQuota();
   }, []);
 
   const fetchLeaveTypes = async () => {
     try {
       const res = await fetch("/api/leave-requests/types", {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       const data = await res.json();
       setLeaveTypes(data);
@@ -36,15 +37,25 @@ const LeaveRequest = () => {
   const fetchRequests = async () => {
     try {
       const res = await fetch("/api/leave-requests/my", {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       const data = await res.json();
       setRequests(data);
     } catch (err) {
       console.error(err);
       setMessage("Failed to load leave requests");
+    }
+  };
+
+  const fetchQuota = async () => {
+    try {
+      const res = await fetch("/api/leave-requests/quota", {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      });
+      const data = await res.json();
+      setQuota(data);
+    } catch (err) {
+      console.error("Error fetching quota", err);
     }
   };
 
@@ -63,6 +74,7 @@ const LeaveRequest = () => {
       });
 
       const data = await res.json();
+
       if (!res.ok) {
         setMessage(data.message || "Submission failed");
         return;
@@ -71,17 +83,33 @@ const LeaveRequest = () => {
       setMessage("Leave request submitted successfully");
       setForm({ leave_type_id: "", start_date: "", end_date: "", notes: "" });
       fetchRequests();
+      fetchQuota(); // update quota after submission
     } catch (err) {
       console.error(err);
       setMessage("Something went wrong");
     }
   };
 
+  const remainingDays = quota.total_days - quota.used_days;
+
   return (
     <FadeTransition>
       <div className="max-w-3xl mx-auto mt-10 p-6 bg-white text-gray-800 rounded shadow">
         <h2 className="text-2xl font-bold mb-4 text-blue-700">Leave Request</h2>
         {message && <p className="mb-4 text-green-600">{message}</p>}
+
+        {/* Quota Display */}
+        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded text-sm text-blue-900">
+          <p>
+            <strong>Total Quota:</strong> {quota.total_days} days
+          </p>
+          <p>
+            <strong>Used:</strong> {quota.used_days} days
+          </p>
+          <p>
+            <strong>Remaining:</strong> {remainingDays} days
+          </p>
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-4 mb-8">
           <div>
