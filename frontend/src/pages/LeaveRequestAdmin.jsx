@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import FadeTransition from "../components/FadeTransition";
+import Pagination from "../components/Pagination";
 
 const ROWS_PER_PAGE = 8;
 
@@ -131,15 +132,14 @@ const LeaveRequestsAdmin = () => {
                       </td>
                       <td className="px-4 py-2 border">{req.notes || "-"}</td>
                       <td
-                        className={`px-4 py-2 text-center font-semibold border border-gray-600 ${
-                          req.remaining_days != null
+                        className={`px-4 py-2 text-center font-semibold border border-gray-600 ${req.remaining_days != null
                             ? req.remaining_days < 5
                               ? "text-red-600"
                               : req.remaining_days < 8
-                              ? "text-yellow-600"
-                              : "text-gray-800"
+                                ? "text-yellow-600"
+                                : "text-gray-800"
                             : "text-gray-400"
-                        }`}
+                          }`}
                       >
                         {req.remaining_days != null ? `${req.remaining_days} days` : "N/A"}
                       </td>
@@ -170,25 +170,11 @@ const LeaveRequestsAdmin = () => {
             </div>
 
             {/* Pagination Controls */}
-            <div className="flex justify-center items-center mt-6 space-x-4">
-              <button
-                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-                disabled={currentPage === 1}
-                className="px-3 py-1 bg-gray-300 hover:bg-gray-400 rounded disabled:opacity-50"
-              >
-                Previous
-              </button>
-              <span className="text-gray-700">
-                Page {currentPage} of {totalPages}
-              </span>
-              <button
-                onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-                disabled={currentPage === totalPages}
-                className="px-3 py-1 bg-gray-300 hover:bg-gray-400 rounded disabled:opacity-50"
-              >
-                Next
-              </button>
-            </div>
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={(page) => setCurrentPage(page)}
+            />
           </>
         )}
       </div>

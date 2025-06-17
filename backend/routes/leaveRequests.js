@@ -2,6 +2,7 @@ import express from "express";
 import { body, validationResult } from "express-validator";
 import { pool } from "../db.js";
 import { authenticateToken, authorizeRoles } from "../middleware/auth.js";
+import { paginateQuery } from "../utils/pagination.js";
 
 const router = express.Router();
 
@@ -52,50 +53,37 @@ router.get(
   async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 8;
-    const offset = (page - 1) * limit;
+
+    const baseQuery = `
+      SELECT
+        lr.request_id,
+        lr.employee_id,
+        e.first_name || ' ' || e.last_name AS employee_name,
+        sup.first_name || ' ' || sup.last_name AS supervisor_name,
+        lr.start_date,
+        lr.end_date,
+        lr.status,
+        lr.notes,
+        lr.request_date,
+        lr.approved_by,
+        lt.type_name AS leave_type,
+        lq.total_days,
+        lq.used_days,
+        (lq.total_days - lq.used_days) AS remaining_days,
+        (lr.end_date - lr.start_date + 1) AS requested_days
+      FROM hr.leave_requests lr
+      JOIN hr.leave_types lt ON lr.leave_type_id = lt.leave_type_id
+      JOIN hr.employees e ON lr.employee_id = e.employee_id
+      LEFT JOIN hr.leave_quotas lq ON lr.employee_id = lq.employee_id AND lq.year = EXTRACT(YEAR FROM CURRENT_DATE)
+      LEFT JOIN hr.employees sup ON e.supervisor_id = sup.employee_id
+      ORDER BY lr.request_date DESC
+    `;
+
+    const countQuery = `SELECT COUNT(*) FROM hr.leave_requests`;
 
     try {
-      const result = await pool.query(
-        `
-        SELECT
-          lr.request_id,
-          lr.employee_id,
-          e.first_name || ' ' || e.last_name AS employee_name,
-          sup.first_name || ' ' || sup.last_name AS supervisor_name,
-          lr.start_date,
-          lr.end_date,
-          lr.status,
-          lr.notes,
-          lr.request_date,
-          lr.approved_by,
-          lt.type_name AS leave_type,
-          lq.total_days,
-          lq.used_days,
-          (lq.total_days - lq.used_days) AS remaining_days,
-          (lr.end_date - lr.start_date + 1) AS requested_days
-        FROM hr.leave_requests lr
-        JOIN hr.leave_types lt ON lr.leave_type_id = lt.leave_type_id
-        JOIN hr.employees e ON lr.employee_id = e.employee_id
-        LEFT JOIN hr.leave_quotas lq ON lr.employee_id = lq.employee_id
-          AND lq.year = EXTRACT(YEAR FROM CURRENT_DATE)
-        LEFT JOIN hr.employees sup ON e.supervisor_id = sup.employee_id
-        ORDER BY lr.request_date DESC
-        LIMIT $1 OFFSET $2
-        `,
-        [limit, offset]
-      );
-
-      const totalResult = await pool.query(
-        `SELECT COUNT(*) FROM hr.leave_requests`
-      );
-      const totalRows = parseInt(totalResult.rows[0].count);
-
-      res.json({
-        data: result.rows,
-        totalRows,
-        currentPage: page,
-        totalPages: Math.ceil(totalRows / limit),
-      });
+      const result = await paginateQuery(pool, baseQuery, countQuery, [], page, limit);
+      res.json(result);
     } catch (err) {
       console.error(err);
       res.status(500).send("Server error");

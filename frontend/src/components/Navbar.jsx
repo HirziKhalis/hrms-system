@@ -21,7 +21,7 @@ const Navbar = ({ onToggleSidebar }) => {
       {/* Hamburger button - only visible on small screens */}
       <button
         onClick={onToggleSidebar}
-        className="md:hidden text-white focus:outline-none"
+        className="md:hidden bg-black text-white px-4 py-2 rounded hover:bg-gray-800 focus:outline-none"
       >
         <FaBars size={22} />
       </button>

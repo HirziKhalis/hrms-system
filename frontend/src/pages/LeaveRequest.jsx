@@ -195,7 +195,18 @@ const LeaveRequest = () => {
                     {new Date(req.end_date).toLocaleDateString()}
                   </td>
                   <td className="px-4 py-2 border">{req.notes || "-"}</td>
-                  <td className="px-4 py-2 border capitalize">{req.status}</td>
+                  <td className="px-4 py-2 border">
+                    <span
+                      className={`px-2 py-1 rounded-full text-xs font-semibold text-white ${req.status === "approved"
+                        ? "bg-green-600"
+                        : req.status === "rejected"
+                          ? "bg-red-600"
+                          : "bg-yellow-500"
+                        }`}
+                    >
+                      {req.status}
+                    </span>
+                  </td>
                 </tr>
               ))}
             </tbody>

@@ -1,6 +1,7 @@
 import express from "express";
 import { pool } from "../db.js";
 import { authenticateToken, authorizeRoles } from "../middleware/auth.js";
+import { paginateQuery } from "../utils/pagination.js";
 
 const router = express.Router();
 
@@ -99,14 +100,33 @@ router.get(
   authenticateToken,
   authorizeRoles("admin"),
   async (req, res) => {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+
+    const baseQuery = `
+      SELECT
+        a.*,
+        e.first_name || ' ' || e.last_name AS employee_name
+      FROM hr.attendance a
+      JOIN hr.employees e ON a.employee_id = e.employee_id
+      ORDER BY a.attendance_date DESC
+    `;
+
+    const countQuery = `
+      SELECT COUNT(*)
+      FROM hr.attendance
+    `;
+
     try {
-      const result = await pool.query(
-        `SELECT a.*, e.first_name || ' ' || e.last_name AS employee_name
-       FROM hr.attendance a
-       JOIN hr.employees e ON a.employee_id = e.employee_id
-       ORDER BY a.attendance_date DESC`
+      const result = await paginateQuery(
+        pool,
+        baseQuery,
+        countQuery,
+        [],
+        page,
+        limit
       );
-      res.json(result.rows);
+      res.json(result);
     } catch (err) {
       console.error(err);
       res.status(500).send("Server error");
