@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from "react";
 import FadeTransition from "../components/FadeTransition";
 import DatePicker from "react-datepicker";
+import { parseISO, format } from "date-fns";
 import "react-datepicker/dist/react-datepicker.css";
 
 
 const OvertimePage = () => {
     const [overtimes, setOvertimes] = useState([]);
-    const [form, setForm] = useState({ date: "", hours: "", reason: "" });
+    const [form, setForm] = useState({ date: "", hours: 0.5, reason: "" });
     const [message, setMessage] = useState("");
 
     const fetchOvertime = async () => {
@@ -66,7 +67,7 @@ const OvertimePage = () => {
                             id="date"
                             selected={form.date ? new Date(form.date) : null}
                             onChange={(date) =>
-                                setForm({ ...form, date: date.toISOString().split("T")[0] })
+                                setForm({ ...form, date: format(date, "yyyy-MM-dd") })
                             }
                             dateFormat="yyyy-MM-dd"
                             className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring focus:border-blue-500 text-gray-900"
@@ -86,8 +87,10 @@ const OvertimePage = () => {
                             min="0.5"
                             max="12"
                             step="0.5"
-                            value={form.hours}
-                            onChange={(e) => setForm({ ...form, hours: e.target.value })}
+                            value={form.hours || 0.5} // fallback to prevent undefined
+                            onChange={(e) =>
+                                setForm({ ...form, hours: parseFloat(e.target.value) })
+                            }
                             className="w-full accent-blue-600"
                         />
                         <div className="flex justify-between text-sm text-gray-500 mt-1">

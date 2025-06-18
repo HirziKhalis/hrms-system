@@ -47,7 +47,7 @@ const Sidebar = ({ closeSidebar }) => {
             <SidebarLink to="/admin/payroll" icon={<FaMoneyBill />} text="Payroll" closeSidebar={closeSidebar} />
             <SidebarLink to="/incentives" icon={<FaGift />} text="Incentives Overview" closeSidebar={closeSidebar} />
             <SidebarLink to="/admin/incentives/create" icon={<FaGift />} text="Create Incentive" closeSidebar={closeSidebar} />
-            <SidebarLink to="/admin/referrals" icon={<FaUsers />} text="Referral Admin" closeSidebar={closeSidebar} />
+            <SidebarLink to="/admin/referrals" icon={<FaUsers />} text="Referral (Admin)" closeSidebar={closeSidebar} />
 
           </>
         )}

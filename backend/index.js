@@ -3,7 +3,6 @@ import cors from "cors";
 import dotenv from "dotenv";
 import { pool } from "./db.js";
 import { authenticateToken } from "./middleware/auth.js";
-import markAbsentees from "./cron/markAbsentees.js";
 import authRoutes from "./routes/auth.js";
 import employeeRoutes from "./routes/employees.js";
 import leaveRequestRoutes from "./routes/leaveRequests.js";
@@ -13,6 +12,8 @@ import attendanceRoutes from "./routes/attendance.js";
 import payrollRoutes from "./routes/payroll.js";
 import incentivesRouter from "./routes/incentives.js";
 import referralsRouter from "./routes/referrals.js";
+import holidayRoutes from "./routes/holidays.js";
+import "./jobs/cronJobs.js"
 
 dotenv.config();
 
@@ -31,9 +32,18 @@ app.use("/api/payroll", payrollRoutes);
 app.use("/api/incentives", incentivesRouter);
 app.use("/api/referrals", referralsRouter);
 app.use("/api/overtime", overtimeRoutes);
+app.use("/api/holidays", holidayRoutes);
 
-markAbsentees();
+app.get("/", (req, res) => {
+  res.send("HRMS API is running 🚀");
+});
 
 app.listen(port, () => {
   console.log(`HRMS backend running on http://localhost:${port}`);
 });
+
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ message: "Something went wrong" });
+});
+

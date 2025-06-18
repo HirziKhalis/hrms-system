@@ -47,7 +47,7 @@ router.patch("/check-out", authenticateToken, async (req, res) => {
   try {
     const { rows } = await pool.query(
       `SELECT * FROM hr.attendance
-       WHERE employee_id = $1 AND attendance_date = CURRENT_DATE`,
+   WHERE employee_id = $1 AND attendance_date = CURRENT_DATE AND status = 'present'`,
       [employeeId]
     );
 

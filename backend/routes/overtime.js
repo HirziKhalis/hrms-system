@@ -29,7 +29,7 @@ router.get(
   async (req, res) => {
     try {
       const result = await pool.query(`
-        SELECT
+      SELECT
         o.overtime_id,
         o.employee_id,
         e.first_name || ' ' || e.last_name AS employee_name,
@@ -41,10 +41,10 @@ router.get(
         o.submitted_at,
         o.approved_at,
         o.approved_by
-        FROM hr.overtimes o
-        JOIN hr.employees e ON o.employee_id = e.employee_id
-        JOIN hr.employees sup ON e.supervisor_id = sup.employee_id
-        ORDER BY o.date DESC
+      FROM hr.overtimes o
+      JOIN hr.employees e ON o.employee_id = e.employee_id
+      LEFT JOIN hr.employees sup ON e.supervisor_id = sup.employee_id
+      ORDER BY o.date DESC;
 `);
 
       res.json(result.rows);

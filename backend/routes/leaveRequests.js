@@ -55,34 +55,41 @@ router.get(
     const limit = parseInt(req.query.limit) || 8;
 
     const baseQuery = `
-      SELECT
-        lr.request_id,
-        lr.employee_id,
-        e.first_name || ' ' || e.last_name AS employee_name,
-        sup.first_name || ' ' || sup.last_name AS supervisor_name,
-        lr.start_date,
-        lr.end_date,
-        lr.status,
-        lr.notes,
-        lr.request_date,
-        lr.approved_by,
-        lt.type_name AS leave_type,
-        lq.total_days,
-        lq.used_days,
-        (lq.total_days - lq.used_days) AS remaining_days,
-        (lr.end_date - lr.start_date + 1) AS requested_days
-      FROM hr.leave_requests lr
-      JOIN hr.leave_types lt ON lr.leave_type_id = lt.leave_type_id
-      JOIN hr.employees e ON lr.employee_id = e.employee_id
-      LEFT JOIN hr.leave_quotas lq ON lr.employee_id = lq.employee_id AND lq.year = EXTRACT(YEAR FROM CURRENT_DATE)
-      LEFT JOIN hr.employees sup ON e.supervisor_id = sup.employee_id
-      ORDER BY lr.request_date DESC
-    `;
+  SELECT
+    lr.request_id,
+    lr.employee_id,
+    e.first_name || ' ' || e.last_name AS employee_name,
+    sup.first_name || ' ' || sup.last_name AS supervisor_name,
+    lr.start_date,
+    lr.end_date,
+    lr.status,
+    lr.notes,
+    lr.request_date,
+    lr.approved_by,
+    lt.type_name AS leave_type,
+    COALESCE(lq.total_days, 12) AS total_days,
+    COALESCE(lq.used_days, 0) AS used_days,
+    (COALESCE(lq.total_days, 12) - COALESCE(lq.used_days, 0)) AS remaining_days,
+    (lr.end_date - lr.start_date + 1) AS requested_days
+  FROM hr.leave_requests lr
+  JOIN hr.leave_types lt ON lr.leave_type_id = lt.leave_type_id
+  JOIN hr.employees e ON lr.employee_id = e.employee_id
+  LEFT JOIN hr.leave_quotas lq ON lr.employee_id = lq.employee_id AND lq.year = EXTRACT(YEAR FROM CURRENT_DATE)
+  LEFT JOIN hr.employees sup ON e.supervisor_id = sup.employee_id
+  ORDER BY lr.request_date DESC
+`;
 
     const countQuery = `SELECT COUNT(*) FROM hr.leave_requests`;
 
     try {
-      const result = await paginateQuery(pool, baseQuery, countQuery, [], page, limit);
+      const result = await paginateQuery(
+        pool,
+        baseQuery,
+        countQuery,
+        [],
+        page,
+        limit
+      );
       res.json(result);
     } catch (err) {
       console.error(err);
@@ -130,6 +137,21 @@ router.get("/quota", authenticateToken, async (req, res) => {
     res.status(500).send("Server error");
   }
 });
+
+//Helper function to get working days
+async function getWorkingDays(startDate, endDate) {
+  const result = await pool.query(
+    `
+    SELECT COUNT(*) FROM generate_series($1::date, $2::date, interval '1 day') AS d
+    WHERE
+      EXTRACT(DOW FROM d) NOT IN (0, 6) -- not Saturday or Sunday
+      AND d NOT IN (SELECT holiday_date FROM hr.public_holidays)
+  `,
+    [startDate, endDate]
+  );
+
+  return parseInt(result.rows[0].count, 10);
+}
 
 // Update status of a leave request (admin only)
 router.patch(
@@ -179,9 +201,7 @@ router.patch(
 
       // 2. If approved, check quota before proceeding
       if (status === "approved") {
-        const leaveDays =
-          (new Date(end_date) - new Date(start_date)) / (1000 * 60 * 60 * 24) +
-          1;
+        const leaveDays = await getWorkingDays(start_date, end_date);
         const year = new Date().getFullYear();
 
         // Ensure quota row exists (optional safeguard)
@@ -214,16 +234,21 @@ router.patch(
            WHERE employee_id = $2 AND year = $3`,
           [leaveDays, employee_id, year]
         );
+        console.log(
+          "Approved leave days (excluding weekends & holidays):",
+          leaveDays
+        );
       }
 
       // 4. Update leave request status
       const updateResult = await pool.query(
         `UPDATE hr.leave_requests
-         SET status = $1, updated_at = NOW()
-         WHERE request_id = $2
+         SET status = $1, updated_at = NOW(), approved_by = $2
+         WHERE request_id = $3
          RETURNING *`,
-        [status, request_id]
+        [status, approverId, request_id]
       );
+      console.log("Approver ID:", approverId);
 
       res.json(updateResult.rows[0]);
     } catch (err) {

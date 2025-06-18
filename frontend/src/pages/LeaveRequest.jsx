@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import FadeTransition from "../components/FadeTransition";
 import DatePicker from "react-datepicker";
+import { parseISO, format } from "date-fns";
 import "react-datepicker/dist/react-datepicker.css";
 
 const LeaveRequest = () => {
@@ -132,9 +133,9 @@ const LeaveRequest = () => {
           <div>
             <label className="block mb-1 font-medium">Start Date:</label>
             <DatePicker
-              selected={form.start_date ? new Date(form.start_date) : null}
+              selected={form.start_date ? parseISO(form.start_date) : null}
               onChange={(date) =>
-                setForm({ ...form, start_date: date.toISOString().split("T")[0] })
+                setForm({ ...form, start_date: format(date, "yyyy-MM-dd") })
               }
               dateFormat="yyyy-MM-dd"
               className="w-full border border-gray-300 rounded px-3 py-2"
@@ -146,9 +147,9 @@ const LeaveRequest = () => {
           <div>
             <label className="block mb-1 font-medium">End Date:</label>
             <DatePicker
-              selected={form.end_date ? new Date(form.end_date) : null}
+              selected={form.end_date ? parseISO(form.end_date) : null}
               onChange={(date) =>
-                setForm({ ...form, end_date: date.toISOString().split("T")[0] })
+                setForm({ ...form, end_date: format(date, "yyyy-MM-dd") })
               }
               dateFormat="yyyy-MM-dd"
               className="w-full border border-gray-300 rounded px-3 py-2"
