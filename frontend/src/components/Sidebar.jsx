@@ -4,11 +4,14 @@ import {
   FaClock,
   FaCalendarCheck,
   FaPlaneDeparture,
-  FaUserShield,
   FaMoneyBill,
-  FaGift,
-  FaUsers
+  FaUsers,
+  FaAward,
+  FaBullhorn
 } from "react-icons/fa";
+import overtimeIcon from '@/assets/icons/overtime.svg';
+import leaveRequestIcon from '@/assets/icons/leaveRequest.svg'
+import IncentiveIcon from '@/assets/icons/incentive.svg'
 import { hasRole } from "../utils/auth";
 
 const Sidebar = ({ closeSidebar }) => {
@@ -28,14 +31,14 @@ const Sidebar = ({ closeSidebar }) => {
           <>
             <SidebarLink
               to="/admin/leave-requests"
-              icon={<FaUserShield />}
+              icon={<img src={leaveRequestIcon} alt="Leave Request Icon" className="w-6 h-6 invert ml-[-1px]" />}
               text="Leave Requests (Admin)"
               closeSidebar={closeSidebar}
             />
 
             <SidebarLink
               to="/admin/overtime-requests"
-              icon={<FaClock />}
+              icon={<img src={overtimeIcon} alt="Overtime Icon" className="w-6 h-6 invert ml-[-1px]" />}
               text="Overtime (Admin)"
               closeSidebar={closeSidebar}
             />
@@ -45,15 +48,17 @@ const Sidebar = ({ closeSidebar }) => {
         {hasRole(["admin"]) && (
           <>
             <SidebarLink to="/admin/payroll" icon={<FaMoneyBill />} text="Payroll" closeSidebar={closeSidebar} />
-            <SidebarLink to="/incentives" icon={<FaGift />} text="Incentives Overview" closeSidebar={closeSidebar} />
-            <SidebarLink to="/admin/incentives/create" icon={<FaGift />} text="Create Incentive" closeSidebar={closeSidebar} />
+            <SidebarLink to="/incentives" icon={<FaAward />} text="Incentives Overview" closeSidebar={closeSidebar} />
+            <SidebarLink to="/admin/incentives/create"
+              icon={<img src={IncentiveIcon} alt="Incentive Icon" className="w-7 h-7 invert ml-[-3px]" />}
+              text="Create Incentive" closeSidebar={closeSidebar} />
             <SidebarLink to="/admin/referrals" icon={<FaUsers />} text="Referral (Admin)" closeSidebar={closeSidebar} />
 
           </>
         )}
 
         {hasRole(["employee", "manager", "admin"]) && (
-          <SidebarLink to="/referrals" icon={<FaUsers />} text="Referral Form" closeSidebar={closeSidebar} />
+          <SidebarLink to="/referrals" icon={<FaBullhorn />} text="Referral Form" closeSidebar={closeSidebar} />
         )}
       </nav>
     </aside>

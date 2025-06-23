@@ -14,8 +14,9 @@ const LeaveRequest = () => {
 
   const [requests, setRequests] = useState([]);
   const [leaveTypes, setLeaveTypes] = useState([]);
+  const [quotaMap, setQuotaMap] = useState({});
   const [message, setMessage] = useState("");
-  const [quota, setQuota] = useState({ total_days: 0, used_days: 0 });
+  const [loadingQuota, setLoadingQuota] = useState(false);
 
   useEffect(() => {
     fetchLeaveTypes();
@@ -31,7 +32,7 @@ const LeaveRequest = () => {
       const data = await res.json();
       setLeaveTypes(data);
     } catch (err) {
-      console.error(err);
+      console.error("Error fetching leave types:", err);
     }
   };
 
@@ -43,20 +44,30 @@ const LeaveRequest = () => {
       const data = await res.json();
       setRequests(data);
     } catch (err) {
-      console.error(err);
+      console.error("Error fetching requests:", err);
       setMessage("Failed to load leave requests");
     }
   };
 
   const fetchQuota = async () => {
+    setLoadingQuota(true);
     try {
       const res = await fetch("/api/leave-requests/quota", {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       const data = await res.json();
-      setQuota(data);
+
+      console.log("Fetched quota:", data); // Debug log
+
+      const mapped = {};
+      data.forEach((q) => {
+        mapped[q.leave_type_id] = q;
+      });
+      setQuotaMap(mapped);
     } catch (err) {
-      console.error("Error fetching quota", err);
+      console.error("Error fetching quota:", err);
+    } finally {
+      setLoadingQuota(false);
     }
   };
 
@@ -84,14 +95,21 @@ const LeaveRequest = () => {
       setMessage("Leave request submitted successfully");
       setForm({ leave_type_id: "", start_date: "", end_date: "", notes: "" });
       fetchRequests();
-      fetchQuota(); // update quota after submission
+      fetchQuota();
     } catch (err) {
-      console.error(err);
+      console.error("Submit error:", err);
       setMessage("Something went wrong");
     }
   };
 
-  const remainingDays = quota.total_days - quota.used_days;
+  const selectedQuota = form.leave_type_id
+    ? quotaMap[form.leave_type_id] ?? null
+    : null;
+
+  const remainingDays =
+    selectedQuota && selectedQuota.total_days != null && selectedQuota.used_days != null
+      ? Number(selectedQuota.total_days) - Number(selectedQuota.used_days)
+      : null;
 
   return (
     <FadeTransition>
@@ -100,24 +118,36 @@ const LeaveRequest = () => {
         {message && <p className="mb-4 text-green-600">{message}</p>}
 
         {/* Quota Display */}
-        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded text-sm text-blue-900">
-          <p>
-            <strong>Total Quota:</strong> {quota.total_days} days
-          </p>
-          <p>
-            <strong>Used:</strong> {quota.used_days} days
-          </p>
-          <p>
-            <strong>Remaining:</strong> {remainingDays} days
-          </p>
-        </div>
+        {form.leave_type_id && (
+          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded text-sm text-blue-900">
+            {loadingQuota ? (
+              <p>Loading quota...</p>
+            ) : selectedQuota ? (
+              <>
+                <p>
+                  <strong>Total Quota:</strong> {selectedQuota.total_days ?? "N/A"} days
+                </p>
+                <p>
+                  <strong>Used:</strong> {selectedQuota.used_days ?? 0} days
+                </p>
+                <p>
+                  <strong>Remaining:</strong> {Number.isFinite(remainingDays) ? remainingDays : "N/A"} days
+                </p>
+              </>
+            ) : (
+              <p>No quota data available for this leave type.</p>
+            )}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4 mb-8">
           <div>
             <label className="block mb-1 font-medium">Leave Type:</label>
             <select
               value={form.leave_type_id}
-              onChange={(e) => setForm({ ...form, leave_type_id: e.target.value })}
+              onChange={(e) =>
+                setForm({ ...form, leave_type_id: e.target.value })
+              }
               required
               className="w-full border border-gray-300 rounded px-3 py-2"
             >
@@ -135,7 +165,10 @@ const LeaveRequest = () => {
             <DatePicker
               selected={form.start_date ? parseISO(form.start_date) : null}
               onChange={(date) =>
-                setForm({ ...form, start_date: format(date, "yyyy-MM-dd") })
+                setForm({
+                  ...form,
+                  start_date: format(date, "yyyy-MM-dd"),
+                })
               }
               dateFormat="yyyy-MM-dd"
               className="w-full border border-gray-300 rounded px-3 py-2"
@@ -149,7 +182,10 @@ const LeaveRequest = () => {
             <DatePicker
               selected={form.end_date ? parseISO(form.end_date) : null}
               onChange={(date) =>
-                setForm({ ...form, end_date: format(date, "yyyy-MM-dd") })
+                setForm({
+                  ...form,
+                  end_date: format(date, "yyyy-MM-dd"),
+                })
               }
               dateFormat="yyyy-MM-dd"
               className="w-full border border-gray-300 rounded px-3 py-2"

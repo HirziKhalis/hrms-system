@@ -17,7 +17,6 @@ router.post(
       .withMessage("Start date is required"),
     body("end_date").isISO8601().toDate().withMessage("End date is required"),
     body("leave_type_id").notEmpty().withMessage("Leave type ID is required"),
-
     body("notes").optional().isString(),
   ],
   async (req, res) => {
@@ -30,16 +29,33 @@ router.post(
     const employee_id = req.user.employee_id;
 
     try {
+      const duplicateCheck = await pool.query(
+        `SELECT 1 FROM hr.leave_requests
+         WHERE employee_id = $1 AND leave_type_id = $2 AND start_date = $3 AND end_date = $4`,
+        [employee_id, leave_type_id, start_date, end_date]
+      );
+
+      if (duplicateCheck.rowCount > 0) {
+        return res
+          .status(409)
+          .json({ message: "Duplicate leave request already exists." });
+      }
+
+      // ✅ Calculate inclusive duration
+      const duration =
+        Math.ceil((end_date - start_date) / (1000 * 60 * 60 * 24)) + 1;
+
       const result = await pool.query(
-        `INSERT INTO hr.leave_requests (request_id, employee_id, leave_type_id, start_date, end_date, status, request_date, notes)
-   VALUES (gen_random_uuid(), $1, $2, $3, $4, 'pending', CURRENT_DATE, $5)
-   RETURNING *`,
-        [employee_id, leave_type_id, start_date, end_date, notes]
+        `INSERT INTO hr.leave_requests
+         (request_id, employee_id, leave_type_id, start_date, end_date, duration, status, request_date, notes)
+         VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, 'pending', CURRENT_DATE, $6)
+         RETURNING *`,
+        [employee_id, leave_type_id, start_date, end_date, duration, notes]
       );
 
       res.status(201).json(result.rows[0]);
     } catch (err) {
-      console.error(err);
+      console.error("Error creating leave request:", err);
       res.status(500).send("Server error");
     }
   }
@@ -68,18 +84,53 @@ router.get(
     lr.approved_by,
     lt.type_name AS leave_type,
     COALESCE(lq.total_days, 12) AS total_days,
-    COALESCE(lq.used_days, 0) AS used_days,
-    (COALESCE(lq.total_days, 12) - COALESCE(lq.used_days, 0)) AS remaining_days,
-    (lr.end_date - lr.start_date + 1) AS requested_days
+
+    -- Dynamically calculated used_days (only approved requests)
+    COALESCE((
+      SELECT SUM(DATE(end_date) - DATE(start_date) + 1)
+      FROM hr.leave_requests lr2
+      WHERE
+        lr2.employee_id = lr.employee_id
+        AND lr2.leave_type_id = lr.leave_type_id
+        AND lr2.status = 'approved'
+        AND EXTRACT(YEAR FROM lr2.start_date) = EXTRACT(YEAR FROM CURRENT_DATE)
+    ), 0) AS used_days,
+
+    -- Remaining days based on total_days - dynamic used_days
+    (
+      COALESCE(lq.total_days, 12) - COALESCE((
+        SELECT SUM(DATE(end_date) - DATE(start_date) + 1)
+        FROM hr.leave_requests lr2
+        WHERE
+          lr2.employee_id = lr.employee_id
+          AND lr2.leave_type_id = lr.leave_type_id
+          AND lr2.status = 'approved'
+          AND EXTRACT(YEAR FROM lr2.start_date) = EXTRACT(YEAR FROM CURRENT_DATE)
+      ), 0)
+    ) AS remaining_days,
+
+    (DATE(lr.end_date) - DATE(lr.start_date) + 1) AS requested_days
   FROM hr.leave_requests lr
   JOIN hr.leave_types lt ON lr.leave_type_id = lt.leave_type_id
   JOIN hr.employees e ON lr.employee_id = e.employee_id
-  LEFT JOIN hr.leave_quotas lq ON lr.employee_id = lq.employee_id AND lq.year = EXTRACT(YEAR FROM CURRENT_DATE)
+  LEFT JOIN hr.leave_quotas lq
+    ON lr.employee_id = lq.employee_id
+    AND lq.leave_type_id = lr.leave_type_id
+    AND lq.year = EXTRACT(YEAR FROM CURRENT_DATE)
   LEFT JOIN hr.employees sup ON e.supervisor_id = sup.employee_id
   ORDER BY lr.request_date DESC
 `;
 
-    const countQuery = `SELECT COUNT(*) FROM hr.leave_requests`;
+    const countQuery = `
+  SELECT COUNT(*) FROM hr.leave_requests lr
+  JOIN hr.leave_types lt ON lr.leave_type_id = lt.leave_type_id
+  JOIN hr.employees e ON lr.employee_id = e.employee_id
+  LEFT JOIN hr.leave_quotas lq
+    ON lr.employee_id = lq.employee_id
+    AND lq.leave_type_id = lr.leave_type_id
+    AND lq.year = EXTRACT(YEAR FROM CURRENT_DATE)
+  LEFT JOIN hr.employees sup ON e.supervisor_id = sup.employee_id
+`;
 
     try {
       const result = await paginateQuery(
@@ -118,20 +169,48 @@ router.get("/my", authenticateToken, async (req, res) => {
   }
 });
 
+//Retrieve Quota
 router.get("/quota", authenticateToken, async (req, res) => {
   try {
     const year = new Date().getFullYear();
-    const result = await pool.query(
-      `SELECT total_days, used_days FROM hr.leave_quotas
-       WHERE employee_id = $1 AND year = $2`,
-      [req.user.employee_id, year]
-    );
+    const employeeId = req.user.employee_id;
 
-    if (result.rows.length === 0) {
-      return res.status(200).json({ total_days: 12, used_days: 0 }); // default fallback
-    }
+    const query = `
+      SELECT
+        lt.leave_type_id,
+        lt.type_name,
+        COALESCE(lq.total_days, lt.default_days) AS total_days,
+        COALESCE((
+          SELECT SUM(DATE(lr.end_date) - DATE(lr.start_date) + 1)
+          FROM hr.leave_requests lr
+          WHERE
+            lr.employee_id = $1
+            AND lr.leave_type_id = lt.leave_type_id
+            AND lr.status = 'approved'
+            AND EXTRACT(YEAR FROM lr.start_date) = $2
+        ), 0) AS used_days,
+        (
+          COALESCE(lq.total_days, lt.default_days) -
+          COALESCE((
+            SELECT SUM(DATE(lr.end_date) - DATE(lr.start_date) + 1)
+            FROM hr.leave_requests lr
+            WHERE
+              lr.employee_id = $1
+              AND lr.leave_type_id = lt.leave_type_id
+              AND lr.status = 'approved'
+              AND EXTRACT(YEAR FROM lr.start_date) = $2
+          ), 0)
+        ) AS remaining_days
+      FROM hr.leave_types lt
+      LEFT JOIN hr.leave_quotas lq
+        ON lq.leave_type_id = lt.leave_type_id
+        AND lq.employee_id = $1
+        AND lq.year = $2
+      ORDER BY lt.type_name;
+    `;
 
-    res.json(result.rows[0]);
+    const result = await pool.query(query, [employeeId, year]);
+    res.json(result.rows);
   } catch (err) {
     console.error("Error fetching leave quota:", err);
     res.status(500).send("Server error");
@@ -176,14 +255,17 @@ router.patch(
     try {
       // 1. Fetch the leave request
       const leaveResult = await pool.query(
-        `SELECT employee_id, start_date, end_date FROM hr.leave_requests WHERE request_id = $1`,
+        `SELECT employee_id, leave_type_id, start_date, end_date
+   FROM hr.leave_requests
+   WHERE request_id = $1`,
         [request_id]
       );
 
       if (leaveResult.rows.length === 0)
         return res.status(404).send("Leave request not found");
 
-      const { employee_id, start_date, end_date } = leaveResult.rows[0];
+      const { employee_id, leave_type_id, start_date, end_date } =
+        leaveResult.rows[0];
 
       // ✅ Supervisor authorization check (skip if admin)
       if (role !== "admin") {
@@ -204,19 +286,26 @@ router.patch(
         const leaveDays = await getWorkingDays(start_date, end_date);
         const year = new Date().getFullYear();
 
-        // Ensure quota row exists (optional safeguard)
+        // Get default days from leave_types
+        const leaveTypeResult = await pool.query(
+          `SELECT default_days FROM hr.leave_types WHERE leave_type_id = $1`,
+          [leave_type_id]
+        );
+
+        const defaultDays = leaveTypeResult.rows[0]?.default_days ?? 0;
+
         await pool.query(
-          `INSERT INTO hr.leave_quotas (employee_id, year, total_days, used_days)
-           VALUES ($1, $2, 12, 0)
-           ON CONFLICT (employee_id, year) DO NOTHING`,
-          [employee_id, year]
+          `INSERT INTO hr.leave_quotas (employee_id, year, leave_type_id, total_days, used_days)
+   VALUES ($1, $2, $3, $4, 0)
+   ON CONFLICT (employee_id, leave_type_id, year) DO NOTHING`,
+          [employee_id, year, leave_type_id, defaultDays]
         );
 
         // Fetch current quota
         const quotaResult = await pool.query(
           `SELECT total_days, used_days FROM hr.leave_quotas
-           WHERE employee_id = $1 AND year = $2`,
-          [employee_id, year]
+   WHERE employee_id = $1 AND year = $2 AND leave_type_id = $3`,
+          [employee_id, year, leave_type_id]
         );
 
         const { total_days, used_days } = quotaResult.rows[0];
@@ -230,10 +319,11 @@ router.patch(
         // 3. Deduct leave days
         await pool.query(
           `UPDATE hr.leave_quotas
-           SET used_days = used_days + $1, updated_at = NOW()
-           WHERE employee_id = $2 AND year = $3`,
-          [leaveDays, employee_id, year]
+   SET used_days = used_days + $1, updated_at = NOW()
+   WHERE employee_id = $2 AND year = $3 AND leave_type_id = $4`,
+          [leaveDays, employee_id, year, leave_type_id]
         );
+
         console.log(
           "Approved leave days (excluding weekends & holidays):",
           leaveDays

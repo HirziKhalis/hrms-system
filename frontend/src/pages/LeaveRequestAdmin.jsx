@@ -90,6 +90,19 @@ const LeaveRequestsAdmin = () => {
     <FadeTransition>
       <div className="max-w-6xl mx-auto mt-10 p-6 bg-white text-gray-800 rounded shadow">
         <h2 className="text-2xl font-bold mb-4 text-blue-700">Leave Requests (Admin)</h2>
+        <button
+                onClick={() => setView("requests")}
+                className="bg-gray-200 hover:bg-gray-300 text-sm font-medium px-3 py-2 rounded mb-3 mr-2"
+              >
+                Leave Requests
+              </button>
+
+              <button
+                onClick={() => setView("quotas")}
+                className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-3 py-2 mb-3 rounded"
+              >
+                Manage Quotas
+              </button>
         {message && <p className="mb-4 text-green-600">{message}</p>}
 
         {loading ? (
@@ -97,6 +110,7 @@ const LeaveRequestsAdmin = () => {
         ) : (
           <>
             <div className="overflow-x-auto">
+
               <table className="min-w-full border border-gray-300 text-sm text-left">
                 <thead className="bg-gray-100 text-gray-700 uppercase">
                   <tr>
@@ -133,12 +147,12 @@ const LeaveRequestsAdmin = () => {
                       <td className="px-4 py-2 border">{req.notes || "-"}</td>
                       <td
                         className={`px-4 py-2 text-center font-semibold border border-gray-600 ${req.remaining_days != null
-                            ? req.remaining_days < 5
-                              ? "text-red-600"
-                              : req.remaining_days < 8
-                                ? "text-yellow-600"
-                                : "text-gray-800"
-                            : "text-gray-400"
+                          ? req.remaining_days < 5
+                            ? "text-red-600"
+                            : req.remaining_days < 8
+                              ? "text-yellow-600"
+                              : "text-gray-800"
+                          : "text-gray-400"
                           }`}
                       >
                         {req.remaining_days != null ? `${req.remaining_days} days` : "N/A"}
