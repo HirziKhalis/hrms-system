@@ -5,6 +5,7 @@ import Dashboard from "./pages/Dashboard";
 import Attendance from "./pages/Attendance";
 import LeaveRequest from "./pages/LeaveRequest";
 import LeaveRequestsAdmin from "./pages/LeaveRequestAdmin";
+import AdminLeaveQuotaPage from "./pages/AdminLeaveQuotaPage";
 import Unauthorized from "./pages/Unauthorized";
 import PayrollAdmin from "./pages/PayrollAdmin";
 import IncentiveAdmin from "./pages/IncentiveAdmin";
@@ -64,6 +65,17 @@ const App = () => {
           <RequireRole roles={["admin", "manager"]}>
             <DashboardLayout>
               <LeaveRequestsAdmin />
+            </DashboardLayout>
+          </RequireRole>
+        }
+      />
+
+      <Route
+        path="/admin/leave-quotas"
+        element={
+          <RequireRole roles={["admin", "manager"]}>
+            <DashboardLayout>
+              <AdminLeaveQuotaPage />
             </DashboardLayout>
           </RequireRole>
         }
