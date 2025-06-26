@@ -83,6 +83,7 @@ router.get(
     lr.request_date,
     lr.approved_by,
     lt.type_name AS leave_type,
+    lt.is_quota_limited,
     COALESCE(lq.total_days, 12) AS total_days,
 
     -- Dynamically calculated used_days (only approved requests)
@@ -177,36 +178,46 @@ router.get("/quota", authenticateToken, async (req, res) => {
 
     const query = `
       SELECT
-        lt.leave_type_id,
-        lt.type_name,
-        COALESCE(lq.total_days, lt.default_days) AS total_days,
-        COALESCE((
-          SELECT SUM(DATE(lr.end_date) - DATE(lr.start_date) + 1)
-          FROM hr.leave_requests lr
-          WHERE
-            lr.employee_id = $1
-            AND lr.leave_type_id = lt.leave_type_id
-            AND lr.status = 'approved'
-            AND EXTRACT(YEAR FROM lr.start_date) = $2
-        ), 0) AS used_days,
-        (
-          COALESCE(lq.total_days, lt.default_days) -
-          COALESCE((
-            SELECT SUM(DATE(lr.end_date) - DATE(lr.start_date) + 1)
-            FROM hr.leave_requests lr
-            WHERE
-              lr.employee_id = $1
-              AND lr.leave_type_id = lt.leave_type_id
-              AND lr.status = 'approved'
-              AND EXTRACT(YEAR FROM lr.start_date) = $2
-          ), 0)
-        ) AS remaining_days
-      FROM hr.leave_types lt
-      LEFT JOIN hr.leave_quotas lq
-        ON lq.leave_type_id = lt.leave_type_id
-        AND lq.employee_id = $1
-        AND lq.year = $2
-      ORDER BY lt.type_name;
+  lt.leave_type_id,
+  lt.type_name,
+  lt.is_quota_limited,
+  CASE WHEN lt.is_quota_limited
+       THEN COALESCE(lq.total_days, lt.default_days)
+       ELSE -1
+  END AS total_days,
+  CASE WHEN lt.is_quota_limited
+       THEN COALESCE((
+         SELECT SUM(DATE(lr.end_date) - DATE(lr.start_date) + 1)
+         FROM hr.leave_requests lr
+         WHERE
+           lr.employee_id = $1
+           AND lr.leave_type_id = lt.leave_type_id
+           AND lr.status = 'approved'
+           AND EXTRACT(YEAR FROM lr.start_date) = $2
+       ), 0)
+       ELSE 0
+  END AS used_days,
+  CASE WHEN lt.is_quota_limited
+       THEN (
+         COALESCE(lq.total_days, lt.default_days) -
+         COALESCE((
+           SELECT SUM(DATE(lr.end_date) - DATE(lr.start_date) + 1)
+           FROM hr.leave_requests lr
+           WHERE
+             lr.employee_id = $1
+             AND lr.leave_type_id = lt.leave_type_id
+             AND lr.status = 'approved'
+             AND EXTRACT(YEAR FROM lr.start_date) = $2
+         ), 0)
+       )
+       ELSE -1
+  END AS remaining_days
+FROM hr.leave_types lt
+LEFT JOIN hr.leave_quotas lq
+  ON lq.leave_type_id = lt.leave_type_id
+  AND lq.employee_id = $1
+  AND lq.year = $2
+ORDER BY lt.type_name;
     `;
 
     const result = await pool.query(query, [employeeId, year]);
@@ -287,19 +298,51 @@ router.patch(
         const year = new Date().getFullYear();
 
         // Get default days from leave_types
+        // Get leave type info
         const leaveTypeResult = await pool.query(
-          `SELECT default_days FROM hr.leave_types WHERE leave_type_id = $1`,
+          `SELECT default_days, is_quota_limited
+   FROM hr.leave_types
+   WHERE leave_type_id = $1`,
           [leave_type_id]
         );
 
-        const defaultDays = leaveTypeResult.rows[0]?.default_days ?? 0;
+        const { default_days, is_quota_limited } = leaveTypeResult.rows[0];
 
-        await pool.query(
-          `INSERT INTO hr.leave_quotas (employee_id, year, leave_type_id, total_days, used_days)
-   VALUES ($1, $2, $3, $4, 0)
-   ON CONFLICT (employee_id, leave_type_id, year) DO NOTHING`,
-          [employee_id, year, leave_type_id, defaultDays]
-        );
+        // If quota is enforced, perform quota logic
+        if (is_quota_limited) {
+          await pool.query(
+            `INSERT INTO hr.leave_quotas (employee_id, year, leave_type_id, total_days, used_days)
+     VALUES ($1, $2, $3, $4, 0)
+     ON CONFLICT (employee_id, leave_type_id, year) DO NOTHING`,
+            [employee_id, year, leave_type_id, default_days]
+          );
+
+          const quotaResult = await pool.query(
+            `SELECT total_days, used_days FROM hr.leave_quotas
+     WHERE employee_id = $1 AND year = $2 AND leave_type_id = $3`,
+            [employee_id, year, leave_type_id]
+          );
+
+          const { total_days, used_days } = quotaResult.rows[0];
+
+          if (is_quota_limited && used_days + leaveDays > total_days) {
+            return res
+              .status(400)
+              .json({ message: "Not enough leave quota remaining." });
+          }
+
+          // Update used days
+          if (is_quota_limited) {
+            await pool.query(
+              `UPDATE hr.leave_quotas
+     SET used_days = used_days + $1, updated_at = NOW()
+     WHERE employee_id = $2 AND year = $3 AND leave_type_id = $4`,
+              [leaveDays, employee_id, year, leave_type_id]
+            );
+          }
+        } else {
+          console.log("Skipping quota check: unlimited leave type");
+        }
 
         // Fetch current quota
         const quotaResult = await pool.query(
@@ -310,7 +353,7 @@ router.patch(
 
         const { total_days, used_days } = quotaResult.rows[0];
 
-        if (used_days + leaveDays > total_days) {
+        if (is_quota_limited && used_days + leaveDays > total_days) {
           return res
             .status(400)
             .json({ message: "Not enough leave quota remaining." });

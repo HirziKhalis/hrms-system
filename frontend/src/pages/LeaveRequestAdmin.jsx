@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import FadeTransition from "../components/FadeTransition";
 import {
   Pagination,
@@ -20,6 +20,9 @@ const LeaveRequestsAdmin = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const currentPath = location.pathname;
 
   const fetchRequests = async (page = 1) => {
     try {
@@ -100,6 +103,28 @@ const LeaveRequestsAdmin = () => {
       <FadeTransition>
         <div className="max-w-6xl mx-auto p-6 bg-white text-gray-800 rounded shadow">
           <h2 className="text-2xl font-bold mb-4 text-blue-700">Leave Requests (Admin)</h2>
+
+          <div className="flex gap-2 mb-6">
+            <Button
+              onClick={() => navigate("/admin/leave-requests")}
+              className={`mb-3 ${currentPath === "/admin/leave-requests"
+                ? "bg-gray-300 text-gray-800"
+                : "bg-blue-600 hover:bg-blue-700 text-white"
+                }`}
+            >
+              Leave Requests
+            </Button>
+            <Button
+              onClick={() => navigate("/admin/leave-quotas")}
+              className={`mb-3 ${currentPath === "/admin/leave-quotas"
+                ? "bg-gray-300 text-gray-800"
+                : "bg-blue-600 hover:bg-blue-700 text-white"
+                }`}
+            >
+              Manage Quotas
+            </Button>
+          </div>
+
           {message && <p className="mb-4 text-green-600">{message}</p>}
 
           {loading ? (
@@ -142,16 +167,22 @@ const LeaveRequestsAdmin = () => {
                         </td>
                         <td className="px-4 py-2 border">{req.notes || "-"}</td>
                         <td
-                          className={`px-4 py-2 text-center font-semibold border border-gray-600 ${req.remaining_days != null
-                            ? req.remaining_days < 5
-                              ? "text-red-600"
-                              : req.remaining_days < 8
-                                ? "text-yellow-600"
-                                : "text-gray-800"
-                            : "text-gray-400"
+                          className={`px-4 py-2 text-center font-semibold border border-gray-600 ${req.is_quota_limited === false
+                            ? "text-blue-600"
+                            : req.remaining_days != null
+                              ? req.remaining_days < 5
+                                ? "text-red-600"
+                                : req.remaining_days < 8
+                                  ? "text-yellow-600"
+                                  : "text-gray-800"
+                              : "text-gray-400"
                             }`}
                         >
-                          {req.remaining_days != null ? `${req.remaining_days} days` : "N/A"}
+                          {req.is_quota_limited === false
+                            ? "Unlimited"
+                            : req.remaining_days != null
+                              ? `${req.remaining_days} days`
+                              : "N/A"}
                         </td>
                         <td className="px-4 py-2 border">
                           {req.status === "pending" ? (

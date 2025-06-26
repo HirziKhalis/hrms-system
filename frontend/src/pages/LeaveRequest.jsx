@@ -3,6 +3,8 @@ import FadeTransition from "../components/FadeTransition";
 import DatePicker from "react-datepicker";
 import { parseISO, format } from "date-fns";
 import "react-datepicker/dist/react-datepicker.css";
+import { useLeaveQuota } from "@/hooks/useLeaveQuota"
+import QuotaDisplay from "@/components/QuotaDisplay";
 
 const LeaveRequest = () => {
   const [form, setForm] = useState({
@@ -14,9 +16,11 @@ const LeaveRequest = () => {
 
   const [requests, setRequests] = useState([]);
   const [leaveTypes, setLeaveTypes] = useState([]);
-  const [quotaMap, setQuotaMap] = useState({});
   const [message, setMessage] = useState("");
-  const [loadingQuota, setLoadingQuota] = useState(false);
+  const { loadingQuota, selectedQuota, remainingDays } = useLeaveQuota(
+    form.leave_type_id
+  );
+
 
   useEffect(() => {
     fetchLeaveTypes();
@@ -102,15 +106,6 @@ const LeaveRequest = () => {
     }
   };
 
-  const selectedQuota = form.leave_type_id
-    ? quotaMap[form.leave_type_id] ?? null
-    : null;
-
-  const remainingDays =
-    selectedQuota && selectedQuota.total_days != null && selectedQuota.used_days != null
-      ? Number(selectedQuota.total_days) - Number(selectedQuota.used_days)
-      : null;
-
   return (
     <FadeTransition>
       <div className="max-w-3xl mx-auto mt-10 p-6 bg-white text-gray-800 rounded shadow">
@@ -120,23 +115,11 @@ const LeaveRequest = () => {
         {/* Quota Display */}
         {form.leave_type_id && (
           <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded text-sm text-blue-900">
-            {loadingQuota ? (
-              <p>Loading quota...</p>
-            ) : selectedQuota ? (
-              <>
-                <p>
-                  <strong>Total Quota:</strong> {selectedQuota.total_days ?? "N/A"} days
-                </p>
-                <p>
-                  <strong>Used:</strong> {selectedQuota.used_days ?? 0} days
-                </p>
-                <p>
-                  <strong>Remaining:</strong> {Number.isFinite(remainingDays) ? remainingDays : "N/A"} days
-                </p>
-              </>
-            ) : (
-              <p>No quota data available for this leave type.</p>
-            )}
+            <QuotaDisplay
+              loadingQuota={loadingQuota}
+              selectedQuota={selectedQuota}
+              remainingDays={remainingDays}
+            />
           </div>
         )}
 

@@ -81,7 +81,7 @@ router.get(
       });
     } catch (err) {
       console.error("Error fetching paginated leave quotas:", err);
-      res.status(500).send("Server error");
+      res.status(500).json({ message: "Server error" });
     }
   }
 );
